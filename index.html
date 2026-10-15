@@ -156,9 +156,9 @@
   .pass { color: var(--good); } .fail { color: var(--bad); }
   footer { font-size: 0.72rem; color: var(--ink3); margin-top: 10px; line-height: 1.55; }
   .hidden { display: none !important; }
-  .cbox.side.fc { height: 150px; }
+  .cbox.side.fc { height: 200px; } .cbox.side.ph { height: 250px; }
   .radar-ctl { flex-wrap: wrap; } .radar-ctl .lbl { white-space: normal; }
-  @media (max-width: 600px) { .cbox.side.fc { height: 170px; } }
+  @media (max-width: 600px) { .cbox.side.fc { height: 230px; } .cbox.side.ph { height: 260px; } }
   .cams { margin-top: 8px; }
   .row2.pheno { margin-top: 4px; }
   .camgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
@@ -271,8 +271,8 @@
     <figure><a href="https://cameras.alertcalifornia.org/public-camera-data/Axis-Sagehen5/latest-frame.jpg" target="_blank" rel="noopener"><img data-alert="Axis-Sagehen5" alt="Sagehen Tower 5 fire camera" loading="lazy"></a><figcaption><b>Tower 5, top of the watershed</b> (8,389 ft), ALERTCalifornia fire camera; it pans, so the view changes</figcaption></figure>
   </div>
   <div class="row2 pheno">
-    <div><div class="plab"><b class="pl">k</b><span class="pt">Greenness</span><span class="u">green share of the image (GCC, 90th percentile)</span></div><ul class="kb" id="kb-k"></ul><div class="cbox side"><canvas id="p-gcc"></canvas></div></div>
-    <div><div class="plab"><b class="pl">l</b><span class="pt">Snow on the meadow</span><span class="u">in</span></div><ul class="kb" id="kb-l"></ul><div class="cbox side"><canvas id="p-psnow"></canvas></div></div>
+    <div><div class="plab"><b class="pl">k</b><span class="pt">Greenness</span><span class="u">GCC, green share of image brightness</span></div><ul class="kb" id="kb-k"></ul><div class="cbox side ph"><canvas id="p-gcc"></canvas></div></div>
+    <div><div class="plab"><b class="pl">l</b><span class="pt">Snow on the meadow</span><span class="u">blue share of the meadow images</span></div><ul class="kb" id="kb-l"></ul><div class="cbox side ph"><canvas id="p-psnow"></canvas></div></div>
   </div>
   <p class="cap" id="cap-pheno"></p>
   <p class="cap" id="cap-cam">Latest image from each camera; the time is printed on each image (PST on the PhenoCams, every 30 min in daylight; Pacific time on the fire camera, about every minute). Snow on the ground, rime and frost show here before they show in the numbers. PhenoCams run by the Kirchner lab (ETH Zurich) at the field station flux tower; the fire camera by UC San Diego and the Nevada Seismological Laboratory. Tap a PhenoCam for its archive. The fire camera is not listed in the public ALERTCalifornia or AlertWildfire viewers, so tapping it opens its newest full size image (1920 × 1080).</p>
@@ -321,7 +321,7 @@
     </ul>
     <h3>Other gauges</h3>
     <ul>
-      <li>SNOTEL storage gauges report hourly in 0.1 in (2.54 mm) steps and swing with temperature, by up to 10 mm over a day (Independence Creek, October 2026). Water that falls stays in the gauge and a thermal swing comes back down, so each gauge is read through its lowest value over the following 24 h and only new highs of that count. A rise less than 24 h old, or a single 0.1 in step of any age (slow drift: four sites each gained one step from 10/11 to 10/13/2026 with radar dry), counts only if the field station gauge, a bucket or Stage IV radar saw 0.5 mm or more within 3 h. A drop of more than 25 mm resets the high (the October season reset).</li>
+      <li>SNOTEL storage gauges report hourly in 0.1 in (2.54 mm) steps and swing with temperature, by up to 10 mm over a day (Independence Creek, October 2026). Water that falls stays in the gauge and a thermal swing comes back down, so each gauge is read through its lowest value over the following 24 h and only new highs of that count. A rise less than 24 h old, or a single 0.1 in step of any age (slow drift: four sites each gained one step from 10/11 to 10/13/2026 with radar dry), counts only if the field station gauge, another gauge within 5 miles (not a SNOTEL) or Stage IV radar saw 0.5 mm or more within 3 h. A drop of more than 25 mm resets the high (the October season reset).</li>
       <li>RAWS (Rice Canyon, Tahoe Donner, Stampede): first differences of cumulative <code>precip_accum</code>; negative steps count as 0; steps that span more than 30 min are flagged. Hobart Mills: sum of 10 min accumulations. Increments faster than 10 mm per 10 min are left out unless another gauge recorded precipitation within 30 min.</li>
       <li>Unheated tipping buckets (RAWS and Hobart Mills) hold snow and tip when it melts. Their tips are marked possible melt, kept in their own totals and left out of storm detection, until their air has stayed at or above 1 °C for 24 h.</li>
       <li>"No data" (no reports) is distinct from 0. A total is partial when its last report is more than 25 min before the end of the interval (more than 70 min for the hourly SNOTEL gauges).</li>
@@ -335,9 +335,14 @@
       <li>Flow response at the USGS gauge: baseline is the time weighted mean of the 6 h before the start; peak is the maximum up to 48 h after the end, cut at the next storm. Lag runs to the peak from the centroid of the basin precipitation that fell before it. A clear response needs a rise of at least 3 gauge steps and 5% of the baseline; a peak before the centroid, or more than 12 h after it, gets no lag. From November to March, after a below freezing day at the tower, flow is marked ice possible (USGS: ice backs water up and raises stage with no change in flow; USGS edits these periods later).</li>
       <li>Flow QC: a report far from the median of its five neighbors on each side is removed; a wild newest report is held until the next one confirms it.</li>
     </ul>
+    <h3>Cameras: greenness and meadow snow</h3>
+    <ul>
+      <li>The PhenoCam Network publishes a daily summary for a fixed patch (region of interest) of each Sagehen camera: GCC, the green chromatic coordinate (green over red plus green plus blue), and the patch's mean red, green and blue. The page shows their 90th percentile GCC and leaves out days they flag as outliers. Their files can't be read from a browser, so the Alta Hydromet Action copies them to its data branch; PhenoCam itself runs a few days behind.</li>
+      <li>Their snow flag is empty for these cameras, so snow is called here from the blue share of the meadow patches, blue over red plus green plus blue, averaged over the two meadow cameras: 0.32 or more is snow. Against Independence Creek SNOTEL depth (1 in or more, 2 miles north, 6,440 ft), 2017 to 2026, the call agreed on 96% of 3,218 days; most disagreements are fall dustings and the open meadow melting out earlier or later than the SNOTEL site.</li>
+    </ul>
     <h3>Snow depth QC</h3>
     <ul><li>SNOTEL depth comes from AWDB hourly data for windows up to 45 days (stamps are Pacific Standard Time) and daily data for longer windows. The Tahoe Donner RAWS sonic depth is shown after QC: values outside 0 to 4,000 mm are dropped, a nonzero depth unchanged for 48 h is a stuck sensor, and readings of 150 mm or less within 3 h of a 0 are bare ground noise. The tower's own depth sensor has sent nothing since August 2025.</li></ul>
-      <div style="margin-top:10px"><button class="btn" id="run-tests">Run parser self-test</button> <span class="muted">Unit tests, the weighing gauge calibration, and a live check of the 21 Dec 2025 storm.</span></div>
+      <div style="margin-top:10px"><button class="btn" id="run-tests">Run parser self test</button> <span class="muted">Unit tests, the weighing gauge calibration, and a live check of the 21 Dec 2025 storm.</span></div>
       <pre class="tests hidden" id="test-out"></pre>
     </div>
   </details>
@@ -453,7 +458,7 @@ const zoneAbbr = ms => (tzOffset(ms) === -7 * HOUR ? 'PDT' : 'PST');
 function fmtDT(ms, { wd = true, tz = false } = {}) { if (ms == null || !isFinite(ms)) return '—'; const p = tzParts(ms); return `${wd ? p.wd + ' ' : ''}${p.m}/${p.d} ${hh12(p.h, p.mi)}${tz ? ' ' + zoneAbbr(ms) : ''}`; }
 function fmtTime(ms) { const p = tzParts(ms); return hh12(p.h, p.mi); }
 function sameDay(a, b) { const x = tzParts(a), y = tzParts(b); return x.y === y.y && x.m === y.m && x.d === y.d; }
-function fmtSpan(a, b) { return `${fmtDT(a)} to ${sameDay(a, b) ? fmtTime(b) : fmtDT(b)}`; }
+function fmtSpan(a, b) { return Math.abs(b - a) < MIN ? `at ${fmtDT(a)}` : `${fmtDT(a)} to ${sameDay(a, b) ? fmtTime(b) : fmtDT(b)}`; }
 function fmtWhen(ms) { return sameDay(ms, Date.now()) ? fmtTime(ms) : fmtDT(ms); }
 function ago(ms) { const d = Date.now() - ms; if (d < 90e3) return 'just now'; if (d < 90 * MIN) return `${Math.round(d / MIN)} min ago`; if (d < 36 * HOUR) return `${(d / HOUR).toFixed(1)} h ago`; return `${(d / DAY).toFixed(1)} d ago`; }
 const durTxt = ms => ms < 90 * MIN ? `${Math.round(ms / MIN)} min` : ms < 48 * HOUR ? `${(ms / HOUR).toFixed(1)} h` : `${(ms / DAY).toFixed(1)} d`;
@@ -670,8 +675,8 @@ function qcSnowDepth(st) {
     if (stuck[i]) return { t: r.t, raw: r.raw, qc: null, flag: 'stuck sensor' };
     let qc = r.raw, flag = '';
     if (r.raw <= 150) {
-      for (let j = i; j >= 0 && ok[j].t >= r.t - 3 * HOUR; j--) if (ok[j].raw <= 5) { qc = 0; flag = 'bare-ground noise'; break; }
-      if (!flag) for (let j = i; j < ok.length && ok[j].t <= r.t + 3 * HOUR; j++) if (ok[j].raw <= 5) { qc = 0; flag = 'bare-ground noise'; break; }
+      for (let j = i; j >= 0 && ok[j].t >= r.t - 3 * HOUR; j--) if (ok[j].raw <= 5) { qc = 0; flag = 'bare ground noise'; break; }
+      if (!flag) for (let j = i; j < ok.length && ok[j].t <= r.t + 3 * HOUR; j++) if (ok[j].raw <= 5) { qc = 0; flag = 'bare ground noise'; break; }
     }
     if (!flag) { const w = ok.slice(Math.max(0, i - 2), i + 3).filter((x, k2) => !stuck[Math.max(0, i - 2) + k2]).map(x => x.raw).sort((x, y) => x - y), med = w[w.length >> 1]; if (w.length >= 3 && Math.abs(r.raw - med) > 100) { qc = med; flag = 'spike'; } }
     return { t: r.t, raw: r.raw, qc, flag };
@@ -1014,13 +1019,30 @@ function monthsBetween(a, b) { const out = []; const d = new Date(a); let y = d.
    ====================================================================== */
 async function loadPheno() {
   const j = await fetchJSON(PHENO_URL + '?v=' + Math.floor(Date.now() / (30 * MIN)), { timeout: 60000 });
-  const d0 = localDate(Date.now() - 400 * DAY), d1 = localDate(Date.now());
-  let ick = [];
-  try { const s = await fetchJSON(`${AWDB}/data?stationTriplets=540:CA:SNTL&elements=SNWD&duration=DAILY&beginDate=${d0}&endDate=${d1}`, { timeout: 60000 }); ick = ((s[0] && s[0].data[0] && s[0].data[0].values) || []).filter(x => x.value != null).map(x => { const [y, m, dd] = x.date.split('-').map(Number); return { t: Date.UTC(y, m - 1, dd + 1, 8), v: x.value }; }); } catch (e) { /* the snow panel still shows the camera call */ }
-  return { ...j, ick };
+  return j;
 }
 const dayStart = ds => { const [y, m, d] = ds.split('-').map(Number); return localToUtc(y, m, d); };
 const dayTxt = t => fmtDT(t, { wd: false }).replace(/ \d+:\d+ [AP]M$/, '');
+// Meadow green up and brown down for each calendar year: a 7 day running median of GCC crosses halfway between
+// the spring low (10th percentile from March to the peak) and the summer peak. On sagehen2, 2018 to 2026: green up
+// May 13 to June 8, brown down Sept 8 to Sept 28. The canopy camera (evergreen) varies too little for this.
+function phenoDates(s) {
+  const out = {}, years = new Map();
+  s.d.forEach((d, i) => { const y = +d.slice(0, 4); if (!years.has(y)) years.set(y, []); years.get(y).push({ t: dayStart(d), m: +d.slice(5, 7), v: s.g90[i] }); });
+  for (const [y, rows] of years) {
+    const sm = rows.map((_, k) => { const w = rows.slice(Math.max(0, k - 3), k + 4).map(r => r.v).filter(v => v != null).sort((p, q) => p - q); return w.length ? w[w.length >> 1] : null; });
+    let pk = -1; sm.forEach((v, k) => { if (v != null && (pk < 0 || v > sm[pk])) pk = k; });
+    if (pk < 0 || rows[pk].m < 5 || rows[pk].m > 8) continue; // no summer peak in this year's data yet
+    const spring = sm.filter((v, k) => k < pk && rows[k].m >= 3 && v != null).sort((p, q) => p - q);
+    if (spring.length < 20) continue;
+    const base = spring[Math.floor(spring.length * 0.1)], half = base + 0.5 * (sm[pk] - base);
+    let gu = null, bd = null;
+    for (let k = 0; k < pk; k++) if (rows[k].m >= 3 && sm[k] != null && sm[k] >= half) { gu = rows[k].t; break; }
+    for (let k = pk; k < rows.length; k++) if (sm[k] != null && sm[k] <= half) { bd = rows[k].t; break; }
+    out[y] = { gu, bd, peak: sm[pk], base };
+  }
+  return out;
+}
 // Daily snow call from the meadow cameras: { d, t, bcc, snow } for every date either camera has.
 function phenoSnowDays(P) {
   const by = new Map();
@@ -1108,11 +1130,16 @@ Chart.register({
     for (const e of o.events || []) { const x0 = x.getPixelForValue(e.start), x1 = x.getPixelForValue(e.end); ctx.fillStyle = 'rgba(0,0,0,0.085)'; ctx.fillRect(x0, ca.top, Math.max(2, x1 - x0), ca.bottom - ca.top); }
     for (const c of o.cells || []) { const x0 = x.getPixelForValue(c.start), x1 = x.getPixelForValue(c.end); ctx.fillStyle = 'rgba(213,94,0,0.14)'; ctx.fillRect(x0, ca.top, Math.max(2, x1 - x0), ca.bottom - ca.top); }
     if (o.labels) { for (const e of o.events || []) if (e.label) lab(e.label, x.getPixelForValue(e.start), INK); for (const c of o.cells || []) lab(c.label, x.getPixelForValue(c.start), RADAR); }
-    for (const h of o.hlines || []) { const y = chart.scales.y.getPixelForValue(h.y); if (y < ca.top || y > ca.bottom) continue; ctx.strokeStyle = h.color || INK3; ctx.setLineDash(h.dash || [3, 3]); ctx.lineWidth = 0.75; ctx.beginPath(); ctx.moveTo(ca.left, y); ctx.lineTo(ca.right, y); ctx.stroke(); ctx.setLineDash([]); if (h.label) { ctx.fillStyle = h.color || INK3; ctx.font = '700 10px Arial, Helvetica'; ctx.fillText(h.label, ca.left + 3, y - 3); } }
+    for (const h of o.hlines || []) { const y = chart.scales.y.getPixelForValue(h.y); if (y < ca.top || y > ca.bottom) continue; ctx.strokeStyle = h.color || INK3; ctx.setLineDash(h.dash || [3, 3]); ctx.lineWidth = 0.75; ctx.beginPath(); ctx.moveTo(ca.left, y); ctx.lineTo(ca.right, y); ctx.stroke(); ctx.setLineDash([]); }
     ctx.restore();
   },
   afterDatasetsDraw(chart, _a, o) {
     const { ctx, chartArea: ca, scales: { x } } = chart; if (!x) return;
+    for (const h of (o && o.hlines) || []) { // labels for the reference lines, on a white backing, above the data
+      if (!h.label || !chart.scales.y) continue; const y = chart.scales.y.getPixelForValue(h.y); if (y < ca.top || y > ca.bottom) continue;
+      ctx.save(); ctx.font = '700 10px Arial, Helvetica'; const w = ctx.measureText(h.label).width, lx = h.right ? ca.right - w - 4 : ca.left + 3;
+      ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.fillRect(lx - 2, y - 13, w + 4, 11); ctx.fillStyle = h.color || INK3; ctx.fillText(h.label, lx, y - 4); ctx.restore();
+    }
     if (o && o.endLabels) {
       const items = [];
       chart.data.datasets.forEach((ds, i) => { if (!chart.isDatasetVisible(i) || !ds.endLabel || !ds.data.length) return; const last = ds.data[ds.data.length - 1]; if (last.y == null) return; items.push({ y: chart.scales.y.getPixelForValue(last.y), text: ds.endLabel, color: ds.labelColor || ds.borderColor }); });
@@ -1140,7 +1167,7 @@ function tickPlan(span, px) {
 }
 function timeTicks(min, max, px) {
   const span = max - min, plan = tickPlan(span, px), out = [];
-  if (plan.month) { let p = tzParts(min), y = p.y, m = p.m; for (let k = 0; k < 24; k++) { const t = localToUtc(y, m, 1); if (t > max) break; if (t >= min) out.push({ value: t, major: true }); m++; if (m > 12) { m = 1; y++; } } return out; }
+  if (plan.month) { const every = Math.max(1, Math.ceil(34 / (px / (span / (30.4 * DAY))))); let p = tzParts(min), y = p.y, m = p.m, n = 0; for (let k = 0; k < 24; k++) { const t = localToUtc(y, m, 1); if (t > max) break; if (t >= min) out.push({ value: t, major: true, show: n++ % every === 0 }); m++; if (m > 12) { m = 1; y++; } } return out; }
   const p0 = tzParts(min - DAY);
   let day = 0;
   for (let k = 0; k < 1200; k++) {
@@ -1154,7 +1181,7 @@ function timeTicks(min, max, px) {
 }
 function tickLabel(v, span, tick) {
   const p = tzParts(v);
-  if (span > 70 * DAY) return new Date(Date.UTC(p.y, p.m - 1, 15)).toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+  if (span > 70 * DAY) return tick && tick.show === false ? '' : new Date(Date.UTC(p.y, p.m - 1, 15)).toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
   if (!tick || !tick.show) return '';
   if (tick.major) return `${p.wd} ${p.m}/${p.d}`;
   return `${(p.h % 12) || 12} ${p.h < 12 ? 'AM' : 'PM'}`;
@@ -1191,7 +1218,7 @@ function timeChart(id, datasets, { y = {}, showX = false, endLabels = false, leg
         paper: { sync: true, events: [], cells: [], ...paper, endLabels },
       },
       scales: {
-        x: { type: 'linear', min: a, max: b, offset: false, ...axisStyle(), grid: timeGrid(), title: { display: true, text: `Date and time (${zoneAbbr(b)})`, color: INK, font: { size: 10.5, weight: '700' }, padding: { top: 1 } },
+        x: { type: 'linear', min: a, max: b, offset: false, ...axisStyle(), grid: timeGrid(), title: { display: true, text: span > 70 * DAY ? 'Date' : `Date and time (${zoneAbbr(b)})`, color: INK, font: { size: 10.5, weight: '700' }, padding: { top: 1 } },
              afterBuildTicks: s => { s.ticks = timeTicks(s.min, s.max, Math.max(120, s.chart.width - AXIS_W - (y2 || reserveY2 ? Y2_W : 0) - (rightPad != null ? rightPad : endLabels ? RIGHT_PAD : 10))); },
              ticks: { display: true, color: INK, maxRotation: 0, autoSkip: false, padding: 3, font: c => ({ size: 10.5, weight: c.tick && c.tick.major ? '800' : '600' }), callback: (v, i, ts) => tickLabel(v, span, ts[i]) } },
         y: { ...axisStyle(), afterFit: s => { s.width = AXIS_W; }, title: { display: !!yTitle, text: yTitle, color: INK, font: { size: 10.5, weight: '700' }, padding: { bottom: 2 } }, ticks: { color: INK, maxTicksLimit: 5, font: { size: 10.5, weight: '600' } }, ...y },
@@ -1313,7 +1340,7 @@ function summaryText() {
 }
 
 // Precipitating near this time (a basin gauge caught 0.25 mm within 3 h): dry hours of the rain line are drawn faint.
-function wetHour(t) { return CORE.some(id => sumNoMelt(S.P[id], t - 3 * HOUR, t + 3 * HOUR) >= 0.25); }
+function wetHour(t) { return CORE.some(id => sumNoMelt(S.P[id], t - 3 * HOUR, t + 3 * HOUR) >= 0.5); }
 function hourlyBasin() {
   const out = [], h0 = Math.floor(S.win.a / HOUR) * HOUR;
   for (let h = h0; h < S.win.b; h += HOUR) {
@@ -1435,11 +1462,11 @@ function panelBullets(va, vb) {
   if (fs && il && il.r.mm >= 5 && fs.r.mm > 0 && Math.abs(il.r.mm / fs.r.mm - 1) > 0.2) B.push(`Ridge vs meadow: Independence Lake caught ${(il.r.mm / fs.r.mm).toFixed(1)}× the field station (${mmIn(il.r.mm)} vs ${mmIn(fs.r.mm)})`);
   if (S.syn && S.syn.SGHEN && S.syn.SGHEN.v.air_temp) {
     const st = S.syn.SGHEN, cold = st.t.map((t, i) => [t, st.v.air_temp[i]]).filter(([t, v]) => v != null && t >= va && t <= vb && v < RAIN_C);
-    const wetCold = cold.filter(([t]) => wetHour(t));
-    if (wetCold.length) D.push(`Below 34 °F at the field station while precipitating, ${fmtSpan(wetCold[0][0], wetCold[wetCold.length - 1][0])}: snow at the creek`);
+    const hrs = new Set(cold.filter(([t]) => wetHour(t)).map(([t]) => Math.floor(t / HOUR)));
+    if (hrs.size) { const last = Math.max(...hrs) * HOUR; D.push(`${hrs.size} h below 34 °F at the field station while the basin gauges caught precipitation, latest ${fmtDT(last)}: likely snow at the creek`); }
   }
   const fl = S.fl.filter(x => x.fl != null && x.t >= va && x.t <= vb && x.fl < BASIN_TOP && wetHour(x.t));
-  if (fl.length) E.push(`Rain line below the crest ${fmtSpan(fl[0].t, fl[fl.length - 1].t)}, lowest ${flTxt(Math.min(...fl.map(x => x.fl)))}: snow on the upper basin`);
+  if (fl.length) E.push(`Rain line below the crest ${fl.length === 1 ? fmtSpan(fl[0].t, fl[0].t) : fmtSpan(fl[0].t, fl[fl.length - 1].t)} (${fl.length} h), lowest ${flTxt(Math.min(...fl.map(x => x.fl)))}: snow on the upper basin`);
   if (S.usgs && S.usgs.q && S.usgs.q.t.length && icePossible(Math.min(vb, Date.now()))) C.push('<span class="flag">Ice possible at the gauge: winter stage can rise with no change in flow</span>');
   let flat = 0;
   for (const e of evs) {
@@ -1535,13 +1562,14 @@ function renderForecast() {
     opts({ type: 'bar', yTitle: 'mm per period', y2: { title: 'in', conv: v => v / 25.4 }, y: { beginAtZero: true, suggestedMax: 2 }, tooltipLabel: c => `Forecast: ${c.parsed.y.toFixed(1)} mm (${(c.parsed.y / 25.4).toFixed(2)} in) for the ${durTxt(qb[c.dataIndex].b - qb[c.dataIndex].a)} period` }));
   timeChart('p-fsnow', [{ label: 'Snow level', data: step(n.snowLevel), borderColor: RADAR, backgroundColor: RADAR, borderWidth: 2, hold: true }],
     opts({ yTitle: 'Elevation, ft', paper: { sync: false, hlines: [{ y: BASIN_TOP, label: `Basin crest ${ft(BASIN_TOP)} ft`, color: INK }, { y: GAUGE_ELEV, label: `USGS gauge ${ft(GAUGE_ELEV)} ft`, color: INK3 }] }, y: { suggestedMin: 4000, suggestedMax: 10000, ticks: { color: INK, maxTicksLimit: 6, font: { size: 10.5, weight: '600' }, callback: v => ft(v) } }, tooltipLabel: c => `Snow level: ${ft(Math.round(c.parsed.y / 100) * 100)} ft` }));
-  const pk = maxIn(n.pop, Date.now(), Date.now() + 3 * DAY), q3 = sumIn(n.qpf, Date.now(), Date.now() + 3 * DAY), K = [];
-  if (pk.v != null && pk.v >= 30) K.push(`Up to ${pk.v}% chance in the next 3 days, highest from ${fmtDT(pk.at)}${q3.mm >= 0.5 ? `; ${mmIn(q3.mm)} forecast` : ''}`);
-  const wetSl = n.snowLevel.filter(x => x.b > Date.now() && x.a < Date.now() + 3 * DAY && n.pop.some(p => overlap(p, x.a, x.b) > 0 && p.v >= 30));
+  const fEnd = Date.now() + 8 * DAY, pk = maxIn(n.pop, Date.now(), fEnd), q3 = sumIn(n.qpf, Date.now(), fEnd), K = [];
+  if (pk.v != null && pk.v >= 30) { const wet = n.pop.filter(p => p.b > Date.now() && p.v >= 30); K.push(`Chance of precipitation ${pk.v}% at most, 30% or more ${fmtSpan(Math.max(Date.now(), wet[0].a), wet[wet.length - 1].b)}${q3.mm >= 0.5 ? `; ${mmIn(q3.mm)} forecast in all${q3.end ? ` through ${fmtDT(q3.end)}` : ''}` : ''}`); }
+  else K.push(`No period above a 30% chance of precipitation through ${fmtDT(Math.max(...n.pop.map(p => p.b)))}`);
+  const wetSl = n.snowLevel.filter(x => x.b > Date.now() && x.a < fEnd && n.pop.some(p => overlap(p, x.a, x.b) > 0 && p.v >= 30));
   if (wetSl.length) { const lo = Math.min(...wetSl.map(x => x.v)), hi = Math.max(...wetSl.map(x => x.v)); K.push(`Snow level ${ft(Math.round(lo / 100) * 100)} to ${ft(Math.round(hi / 100) * 100)} ft while precipitation is likely: ${lo < GAUGE_ELEV ? 'snow down to the creek' : lo < BASIN_TOP ? 'snow on the upper basin' : 'rain over the whole basin'}`); }
   document.getElementById('kb-fc').innerHTML = K.map(t => `<li>${t}</li>`).join('');
   document.getElementById('fc-src').textContent = `NWS Reno, issued ${fmtDT(n.updated)}`;
-  cap.innerHTML = `NWS gridded forecast for the 2.5 km cell over the basin center (REV 28,105). <b>h</b> Chance for each forecast period, so a long flat step is one broad period, not steady rain. <b>i</b> Amount for each period (QPF), issued about 3 days ahead, so a blank tail means no amount yet, not no rain. <b>j</b> Snow level: below it mostly snow; compare with the measured rain line in <b>f</b>.`;
+  cap.innerHTML = `NWS gridded forecast for the 2.5 km cell over the basin center (REV 28,105). <b>h</b> Chance for each forecast period, so a long flat step is one broad period, not steady rain. <b>i</b> Forecast amount for each 6 h period (QPF). <b>j</b> Snow level: below it mostly snow; compare with the measured rain line in <b>f</b>.`;
 }
 
 /* Map */
@@ -1563,7 +1591,7 @@ function renderMap() {
   stationLayer.clearLayers();
   const OFF = { left: [-7, 0], right: [7, 0], top: [0, -7], bottom: [0, 7] };
   const label = (m, txt, dir = 'right', muted = false) => m.bindTooltip(txt, { permanent: true, direction: dir, className: muted ? 'stlab ctx' : 'stlab', offset: OFF[dir] });
-  const DIR = { SGHP: 'top', NV012: 'bottom', ICPC1: 'right', ICKC1: 'right', ILKC1: 'left', USGSP: 'left' }, NOLABEL = new Set(['SGHEN']), SNOTEL_IDS = { ILKC1: 541, ICPC1: 539, ICKC1: 540, CSSC1: 428, TRUC1: 834 };
+  const DIR = { SGHP: 'top', NV012: 'bottom', ICPC1: 'right', ICKC1: 'right', ILKC1: 'right', USGSP: 'left' }, NOLABEL = new Set(['SGHEN']), SNOTEL_IDS = { ILKC1: 541, ICPC1: 539, ICKC1: 540, CSSC1: 428, TRUC1: 834 };
   for (const s of STATIONS) {
     if (SNOTEL_IDS[s.id]) continue; // drawn as SNOTEL triangles below
     const f = isNear(s);
@@ -1626,15 +1654,20 @@ function renderElev() {
         y: { ...ax, min: 5800, max: 8600, title: { display: true, text: 'Gauge elevation, ft', color: INK, font: { size: 10.5, weight: '700' } }, ticks: { color: INK, font: { size: 10.5, weight: '600' }, callback: v => ft(v) } },
       },
     },
-    plugins: [{ id: 'ptlab', afterDatasetsDraw(ch) { const { ctx } = ch, meta = ch.getDatasetMeta(0); ctx.save(); ctx.font = '700 10.5px Arial, Helvetica'; ctx.textBaseline = 'middle'; meta.data.forEach((el, i) => { ctx.fillStyle = isNear(pts[i].s) ? INK : INK3; ctx.fillText(pts[i].s.short, el.x + 7, el.y); }); ctx.restore(); } }],
+    plugins: [{ id: 'ptlab', afterDatasetsDraw(ch) { const { ctx } = ch, meta = ch.getDatasetMeta(0); ctx.save(); ctx.font = '700 10.5px Arial, Helvetica'; ctx.textBaseline = 'middle'; // Names that would overlap one already drawn are skipped (basin and nearby gauges first); tap a point for its name.
+      const placed = [], order = meta.data.map((el, i) => i).sort((p, q) => (isNear(pts[q].s) - isNear(pts[p].s)) || (isFocus(pts[q].s) - isFocus(pts[p].s)));
+      for (const i of order) { const el = meta.data[i], w = ctx.measureText(pts[i].s.short).width, box = [el.x + 7, el.y - 6, el.x + 7 + w, el.y + 6];
+        if (box[2] > ch.width || placed.some(q => box[0] < q[2] && box[2] > q[0] && box[1] < q[3] && box[3] > q[1])) continue;
+        placed.push(box); ctx.fillStyle = isNear(pts[i].s) ? INK : INK3; ctx.fillText(pts[i].s.short, el.x + 7, el.y); }
+      ctx.restore(); } }],
   };
   if (charts['p-elev']) charts['p-elev'].destroy();
   charts['p-elev'] = new Chart(document.getElementById('p-elev'), cfg);
   document.getElementById('cap2').innerHTML = `Dashed outline: Sagehen Creek above USGS 10343500 (NLDI basin, 27.7 km²). Filled symbols measure precipitation; open circles temperature and wind only; triangles are SNOTEL; the square is the stream gauge; diamonds are cameras. Gray symbols are Truckee area context. Tap a station for its latest values and source. The slider steps through radar mosaic frames (5 min) for the last 2 h, or for a storm you click.`;
-  document.getElementById('cap-elev').innerHTML = `Triangles are SNOTEL storage gauges, circles the field station weighing gauge and the tipping buckets (unheated buckets undercatch snow). Winter storms usually build totals with elevation, toward Independence Lake on the crest.`;
+  document.getElementById('cap-elev').innerHTML = `Triangles are SNOTEL storage gauges, circles the field station weighing gauge and the tipping buckets (unheated buckets undercatch snow). Where names would overlap, tap a point. Winter storms usually build totals with elevation, toward Independence Lake on the crest.`;
   const ok = pts.filter(p => isNear(p.s) && !p.s.unheated);
   let key = '';
-  if (ok.length >= 3 && Math.max(...ok.map(p => p.x)) >= 2) {
+  if (ok.length >= 3 && Math.max(...ok.map(p => p.x)) >= 10) {
     const n = ok.length, mx = ok.reduce((a, p) => a + p.y, 0) / n, my = ok.reduce((a, p) => a + p.x, 0) / n;
     let sxy = 0, sxx = 0, syy = 0; for (const p of ok) { sxy += (p.y - mx) * (p.x - my); sxx += (p.y - mx) ** 2; syy += (p.x - my) ** 2; }
     const r = sxy / Math.sqrt(sxx * syy || 1);
@@ -1736,10 +1769,10 @@ function renderPheno() {
     if (med.length) ds.push({ label: 'Fen meadow, median of earlier years', endLabel: 'meadow median', data: med, borderColor: INK3, backgroundColor: INK3, borderWidth: 1, borderDash: [1, 2.5] });
   }
   const days = phenoSnowDays(P), runs = snowRuns(days).filter(r => r.end > a);
-  timeChart('p-gcc', ds, { showX: true, endLabels: true, decimate: false, xRange: xr, rightPad: 96, yTitle: 'GCC', paper: { sync: false, events: runs }, tooltipLabel: c => `${c.dataset.label}: ${c.parsed.y.toFixed(3)}` });
-  const sd = [], ick = (P.ick || []).filter(x => x.t >= a);
-  if (ick.length) sd.push({ label: 'Independence Creek SNOTEL depth, 6,440 ft', endLabel: 'Indep. Creek', data: ick.map(x => ({ x: x.t, y: x.v })), borderColor: SNC['540:CA:SNTL'], backgroundColor: SNC['540:CA:SNTL'], stepped: true, borderWidth: 1.8 });
-  timeChart('p-psnow', sd, { showX: true, endLabels: true, decimate: false, xRange: xr, rightPad: 96, yTitle: 'Depth, in', paper: { sync: false, events: runs }, y: { beginAtZero: true, suggestedMax: 6 }, tooltipLabel: c => `${c.dataset.label}: ${c.parsed.y.toFixed(0)} in` });
+  timeChart('p-gcc', ds, { showX: true, endLabels: true, decimate: false, xRange: xr, rightPad: 96, yTitle: 'Green share (GCC)', paper: { sync: false, events: runs, hlines: [{ y: 1 / 3, label: '1/3: no green', color: INK2, right: true }] }, y: { suggestedMin: 0.3, suggestedMax: 0.48 }, tooltipLabel: c => `${c.dataset.label}: ${c.parsed.y.toFixed(3)}` });
+  const bs = days.filter(x => x.t >= a).map(x => ({ x: x.t + 12 * HOUR, y: x.bcc }));
+  timeChart('p-psnow', [{ label: 'Meadow cameras, blue share (sagehen2 and sagehen3 mean)', endLabel: 'Meadow', data: bs, borderColor: '#0072B2', backgroundColor: '#0072B2', borderWidth: 1.6 }],
+    { showX: true, endLabels: true, decimate: false, xRange: xr, rightPad: 96, yTitle: 'Blue share', paper: { sync: false, events: runs, hlines: [{ y: PHENO_SNOW_BCC, label: `${PHENO_SNOW_BCC}: snow above`, color: INK, right: true }] }, y: { suggestedMin: 0.18, suggestedMax: 0.45 }, tooltipLabel: c => `Meadow blue share: ${c.parsed.y.toFixed(3)}${c.parsed.y >= PHENO_SNOW_BCC ? ' (snow)' : ''}` });
   const K = [], L = [], last = days[days.length - 1];
   if (last) {
     let k = days.length - 1; while (k > 0 && days[k - 1].snow === last.snow) k--;
@@ -1747,11 +1780,16 @@ function renderPheno() {
     const wy0 = waterYearStart(last.t), prev = days.filter(x => x.t >= wy0 - 365 * DAY && x.t < wy0 && x.snow);
     if (prev.length) L.push(`Last winter: snow on the meadow ${prev.length} days, first ${dayTxt(prev[0].t)}, last ${dayTxt(prev[prev.length - 1].t)}`);
   }
-  if (m2) { let j = m2.g90.length - 1; while (j > 0 && m2.g90[j] == null) j--; const yr = m2.d.map((d, q) => dayStart(d) >= a ? m2.g90[q] : null).filter(v => v != null); if (j >= 0 && yr.length) K.push(`Meadow greenness ${m2.g90[j].toFixed(3)} on ${dayTxt(dayStart(m2.d[j]))}; the 12 month peak was ${Math.max(...yr).toFixed(3)}`); }
+  if (m2) {
+    const ph = phenoDates(m2), yNow = tzParts(Date.now()).y, cur = ph[yNow], past = Object.entries(ph).filter(([y]) => +y < yNow).map(([, v]) => v);
+    const md = (k) => { const v = past.map(p => p[k]).filter(Boolean).map(t => { const p = tzParts(t); return Date.UTC(2001, p.m - 1, p.d); }).sort((x, y) => x - y); if (!v.length) return null; const m = new Date(v[v.length >> 1]); return `${m.getUTCMonth() + 1}/${m.getUTCDate()}`; };
+    const md1 = t => { const p = tzParts(t); return `${p.m}/${p.d}`; };
+    if (cur && cur.gu) K.push(`Meadow greened up ${md1(cur.gu)}${cur.bd ? ` and browned down ${md1(cur.bd)}` : ', still green'} this year; medians for ${Math.min(...Object.keys(ph).map(Number))} to ${yNow - 1}: ${md('gu')} and ${md('bd')}`);
+  }
   document.getElementById('kb-k').innerHTML = K.map(t => `<li>${t}</li>`).join('');
   document.getElementById('kb-l').innerHTML = L.map(t => `<li>${t}</li>`).join('');
   const lastDay = Math.max(...Object.values(P.sites).map(s => s.d.length ? dayStart(s.d[s.d.length - 1]) : 0));
-  cap.innerHTML = `Daily values from the PhenoCam Network for a fixed region of each image, over the last 12 months. <b>k</b> Greenness is the green share of the image (green over red plus green plus blue, 90th percentile of the day's images): it rises at green up and falls as the meadow cures and under snow. Dotted: the meadow camera's median for each date in earlier years (from 2017). <b>l</b> Gray bands, in both panels: days the two meadow cameras see snow (blue share of 0.32 or more; agreed with SNOTEL depth on 96% of days, 2017 to 2026). Line: snow depth at Independence Creek SNOTEL, 2 miles north at a similar elevation. PhenoCam processes images a few days behind; latest day ${dayTxt(lastDay)}.`;
+  cap.innerHTML = `Daily values over the last 12 months. <b>k</b> Greenness is GCC, the green chromatic coordinate the PhenoCam Network computes for a fixed patch of each image: green brightness divided by red plus green plus blue (the day's 90th percentile). Gray, white or brown scenes sit near one third; green plants push it up, to about 0.45 on the meadow in June. It measures how green, not how much plant; the canopy camera sees evergreen conifers, so it barely moves. Green up and brown down are when the meadow passes halfway between its spring low and summer peak. Dotted: the meadow's median for each date in earlier years (from 2017). <b>l</b> Blue share of the two meadow patches (blue over red plus green plus blue, from the same PhenoCam summaries). Snow reflects blue strongly, so it jumps from about 0.24 on grass to about 0.38 under snow; 0.32 or more is called snow and shaded gray in both panels. Checked against snow depth at Independence Creek SNOTEL (2 miles north, 6,440 ft): the two agreed on 96% of days, 2017 to 2026. PhenoCam processes images a few days behind; latest day ${dayTxt(lastDay)}.`;
 }
 
 /* CSV */
@@ -1787,9 +1825,9 @@ function processAll() {
   computeEvents();
 }
 // SNOTEL increments less than 24 h old, and single 0.1 in steps of any age, are kept only if a non-SNOTEL source
-// saw precipitation within 3 h: the field station gauge, any tipping bucket, or Stage IV radar at the basin center (0.5 mm or more).
+// saw precipitation within 3 h: the field station gauge, a gauge within 5 miles, or Stage IV radar at the basin center (0.5 mm or more).
 function confirmProvisional() {
-  const other = (t0, t) => PRECIP_ALL.some(g => g.mode !== 'ratchet' && S.P[g.id] && sumNoMelt(S.P[g.id], t0 - 3 * HOUR, t + 3 * HOUR) >= 0.5) ||
+  const other = (t0, t) => PRECIP_ALL.some(g => g.mode !== 'ratchet' && isNear(g) && S.P[g.id] && sumNoMelt(S.P[g.id], t0 - 3 * HOUR, t + 3 * HOUR) >= 0.5) ||
     !!(S.iem && S.iem.hourly && S.iem.rows.some(r => r.mm >= 0.5 && r.t > t0 - 3 * HOUR && r.t0 < t + 3 * HOUR));
   for (const g of PRECIP_ALL) if (g.mode === 'ratchet' && S.P[g.id]) for (const inc of S.P[g.id].incs) if (inc.flags.includes('provisional') || inc.flags.includes('one step')) { inc.include = other(inc.t0, inc.t); if (!inc.include && !inc.flags.includes('unconfirmed')) inc.flags.push('unconfirmed'); }
 }
