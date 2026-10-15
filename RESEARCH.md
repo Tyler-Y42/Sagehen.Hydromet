@@ -53,6 +53,17 @@ Done 2026-10-14 (overnight). Every source below was probed directly; "CORS" mean
 - Result, 3 Oct 2025 to 31 Jul 2026 (after the 10/2 drain): Geonor 889 mm, Independence Camp 790 mm, Independence Lake 1,199 mm. Two day totals correlate at r = 0.95 (Camp) and 0.98 (Lake). False precip on dry spells: 1.6 mm all year.
 - Status now: back to normal since late September 2026, but it missed the 9/3 to 9/4 storm.
 
+## Second pass, 2026-10-15: looking for more stations in the forest
+
+- **Added: USGS 392724120171001, Independence C precip gage nr Truckee.** 39.4566, -120.2871, about 6,920 ft (beside Independence Camp SNOTEL, 3 mi NW of the basin). 15 min precipitation totals via NWIS IV (CORS yes). Not on MesoWest, so the first sweep missed it. Dec 19 to 27, 2025: 255 mm, against 267 mm at Independence Camp SNOTEL.
+- **Added: ALERTCalifornia fire camera Axis-Sagehen5 on Tower 5, top of the watershed (8,389 ft).** Public still at cameras.alertcalifornia.org/public-camera-data/Axis-Sagehen5/latest-frame.jpg, about every minute. It pans (azimuth 26° on 10/15, looking across Stampede). ALERTCalifornia publishes no coordinates for it.
+- **Sagehen's own tower network (12 towers, Keck HydroWatch, later DRI snow pillows and gauges) is not public anywhere I could reach.** Dendra has "Sagehen" and "HydroWatch" organizations, but both are hidden with no public stations; the Keck sensor database (sensors.berkeley.edu) returns 503; WRCC's tower pages point at a dead DRI server. Worth asking the field station staff or DRI for access; the towers would give a real elevation transect inside the basin.
+- Synoptic, all stations within 8 mi including inactive: nothing else in the basin. TS052 (TNF02 portable RAWS) sat at 39.4404, -120.2253 by the station until 2026-03-23 (fire season deployment). ICRC1 is Independence Creek stage (HADS). ILAC1 Independence Lake ended 2009.
+- Other USGS sites nearby: 10343000 Independence Creek (live flow, but below the Independence Lake dam, so regulated), 10342900 Independence Lake storage (live), 10341950 Little Truckee below diversion (no current data), 10343200 Little Truckee at Hwy 89.
+- Central Sierra Snow Lab stations on Dendra (Sky-To-Stream platform, Castle Creek, Onion Creek, Donner Lake West, Forest Tower): 8 to 10 mi SW at Donner Summit; most are hidden. Possible context later.
+- HydroShare DWCZ Sagehen soil moisture, soil temperature and snow depth array at the Tower 1 hillslope (2017 on): file archive, last updated May 2023, not live.
+- UNR Harpold lab field sites at Sagehen: the PhenoCams, the Tower 5 camera and Independence Lake SNOTEL; no separate live stations.
+
 ## Notes for later
 
 - SNOTEL hourly AWDB stamps are PST (same as Alta); SCAN would be different.

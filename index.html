@@ -160,10 +160,10 @@
   .radar-ctl { flex-wrap: wrap; } .radar-ctl .lbl { white-space: normal; }
   @media (max-width: 600px) { .cbox.side.fc { height: 170px; } }
   .cams { margin-top: 8px; }
-  .camgrid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px; margin-top: 8px; }
-  @media (max-width: 760px) { .camgrid { grid-template-columns: minmax(0, 1fr); } }
+  .camgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+  @media (max-width: 600px) { .camgrid { grid-template-columns: minmax(0, 1fr); } }
   .camgrid figure { margin: 0; min-width: 0; }
-  .camgrid img { width: 100%; aspect-ratio: 1296 / 960; object-fit: cover; display: block; background: #dfe3e6; border: 0.75px solid var(--edge); }
+  .camgrid img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; display: block; background: #dfe3e6; border: 0.75px solid var(--edge); }
   .camgrid figcaption { font-size: 0.76rem; color: var(--ink2); margin-top: 3px; }
 </style>
 </head>
@@ -262,13 +262,14 @@
 </div>
 
 <div class="card cams">
-  <div class="ch"><h3>Cameras</h3><span class="u">PhenoCam Network, field station flux tower</span></div>
+  <div class="ch"><h3>Cameras</h3><span class="u">PhenoCam Network and ALERTCalifornia</span></div>
   <div class="camgrid">
     <figure><a href="https://phenocam.nau.edu/webcam/sites/sagehen/" target="_blank" rel="noopener"><img data-cam="sagehen" alt="Sagehen above canopy camera" loading="lazy"></a><figcaption><b>Above the canopy</b>, looking across the basin from the flux tower</figcaption></figure>
     <figure><a href="https://phenocam.nau.edu/webcam/sites/sagehen2/" target="_blank" rel="noopener"><img data-cam="sagehen2" alt="Sagehen fen camera 2" loading="lazy"></a><figcaption><b>Fen meadow</b>, beside the tower instruments</figcaption></figure>
     <figure><a href="https://phenocam.nau.edu/webcam/sites/sagehen3/" target="_blank" rel="noopener"><img data-cam="sagehen3" alt="Sagehen fen camera 3" loading="lazy"></a><figcaption><b>Fen meadow</b>, second view</figcaption></figure>
+    <figure><a href="https://www.alertwildfire.org/region/tahoe/?camera=Axis-Sagehen5" target="_blank" rel="noopener"><img data-alert="Axis-Sagehen5" alt="Sagehen Tower 5 fire camera" loading="lazy"></a><figcaption><b>Tower 5, top of the watershed</b> (8,389 ft), ALERTCalifornia fire camera; it pans, so the view changes</figcaption></figure>
   </div>
-  <p class="cap" id="cap-cam">Latest daylight image from each camera (every 30 min from sunrise to sunset; the time is printed in the top left of each image, in PST). Snow on the ground, rime and frost show here before they show in the numbers. Cameras run by the Kirchner lab (ETH Zurich). Tap an image for the full archive.</p>
+  <p class="cap" id="cap-cam">Latest image from each camera; the time is printed on each image (PST on the PhenoCams, every 30 min in daylight; Pacific time on the fire camera, about every minute). Snow on the ground, rime and frost show here before they show in the numbers. PhenoCams run by the Kirchner lab (ETH Zurich) at the field station flux tower; the fire camera by UC San Diego and the Nevada Seismological Laboratory. Tap an image for its archive or live view.</p>
 </div>
 
 <details class="drawer">
@@ -300,7 +301,7 @@
     <h3>Which stations, and why</h3>
     <ul>
       <li><b>In the basin.</b> Sagehen Creek above the USGS gauge drains 27.7 km² from 6,330 ft at the gauge to about 8,740 ft on the crest. Three instruments sit in it or on its edge: the field station's East Meadow tower beside the gauge (6,337 ft; a Geonor weighing precipitation gauge plus temperature, humidity, wind and radiation at 25 and 100 ft, run by the UC Natural Reserve System), Independence Lake SNOTEL on the west ridge (541, 8,340 ft, the only snow pillow in the basin) and the USGS gauge itself.</li>
-      <li><b>Nearby.</b> Independence Camp (539, 6,970 ft) and Independence Creek (540, 6,440 ft) SNOTEL sites, 3 to 5 miles north, and the NV Energy gauge at Hobart Mills (6,030 ft, 3 miles southeast).</li>
+      <li><b>Nearby.</b> Independence Camp (539, 6,970 ft) and Independence Creek (540, 6,440 ft) SNOTEL sites, 3 to 5 miles north; the USGS precipitation gauge at Independence Creek (392724120171001, about 6,920 ft, beside Independence Camp, 15 min totals, not on MesoWest; its temperature here is Independence Camp's); and the NV Energy gauge at Hobart Mills (6,030 ft, 3 miles southeast).</li>
       <li><b>Context.</b> RAWS at Rice Canyon, Tahoe Donner and Stampede, and SNOTEL at the Central Sierra Snow Lab (Donner Summit) and Truckee #2. RAWS buckets are unheated.</li>
       <li><b>Streamflow:</b> USGS 10343500 Sagehen Creek near Truckee, a Hydrologic Benchmark station with a record since 1953. Discharge, stage and water temperature every 15 min, provisional.</li>
       <li><b>Radar:</b> amounts from NCEP Stage IV (radar adjusted to gauges, hourly) for windows up to 8 days and NOAA MRMS daily totals beyond, both from the IEM IEMRE point service at the basin center (39.432, -120.272). The NEXRAD mosaic (IEM, 5 min) is on the map and in the "radar now" tile. The Reno and Sacramento radars see the basin over the crest, so low snow is often missed.</li>
@@ -358,7 +359,7 @@ const AWDB = 'https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1';
 const DENDRA = 'https://api.dendra.science/v2', GEONOR_DS = '5ae879acfe27f432a5102d70'; // Sagehen Creek station, "Precipitation Geonor Freq"
 const DENDRA_LINK = 'https://dendra.science/orgs/ucnrs/status/sagehen-creek';
 const USGS_SITE = '10343500', USGS_LINK = 'https://waterdata.usgs.gov/monitoring-location/USGS-10343500/';
-const mesoLink = id => id === 'SGHP' ? DENDRA_LINK : `https://mesowest.utah.edu/cgi-bin/droman/meso_base_dyn.cgi?stn=${id}`;
+const mesoLink = id => id === 'SGHP' ? DENDRA_LINK : id === 'USGSP' ? 'https://waterdata.usgs.gov/monitoring-location/USGS-392724120171001/' : `https://mesowest.utah.edu/cgi-bin/droman/meso_base_dyn.cgi?stn=${id}`;
 
 // role: gauge (precip used), met (no precip used)
 // group: basin (in or on the edge of the watershed, the focus), near (within 5 miles), context (Truckee area)
@@ -370,6 +371,7 @@ const STATIONS = [
   { id: 'ICPC1', name: 'Independence Camp SNOTEL', short: 'Indep. Camp', elev: 6979, lat: 39.45269, lon: -120.29367, net: 'SNOTEL 539', mode: 'ratchet', role: 'gauge', group: 'near', color: '#009E73' },
   { id: 'ICKC1', name: 'Independence Creek SNOTEL', short: 'Indep. Creek', elev: 6435, lat: 39.49001, lon: -120.28226, net: 'SNOTEL 540', mode: 'ratchet', role: 'gauge', group: 'near', color: '#56B4E9' },
   { id: 'NV012', name: 'Hobart Mills', short: 'Hobart Mills', elev: 6030, lat: 39.40898, lon: -120.19495, net: 'NV Energy', mode: 'ten', role: 'gauge', group: 'near', color: '#E69F00', unheated: true },
+  { id: 'USGSP', name: 'Independence Creek precipitation gauge', short: 'Indep. Cr. USGS', elev: 6920, lat: 39.45657, lon: -120.28715, net: 'USGS', mode: 'usgs', role: 'gauge', group: 'near', color: '#8c6d1f', tempFrom: 'ICPC1' },
   { id: 'RNYC1', name: 'Rice Canyon RAWS', short: 'Rice Canyon', elev: 6943, lat: 39.52502, lon: -120.32884, net: 'RAWS', mode: 'accum', role: 'gauge', group: 'context', color: '#8e9bab', unheated: true },
   { id: 'TADC1', name: 'Tahoe Donner RAWS', short: 'Tahoe Donner', elev: 7399, lat: 39.33819, lon: -120.27339, net: 'RAWS', mode: 'accum', role: 'gauge', group: 'context', color: '#7d8a99', unheated: true },
   { id: 'SMDC1', name: 'Stampede RAWS', short: 'Stampede', elev: 6207, lat: 39.47109, lon: -120.08698, net: 'RAWS', mode: 'accum', role: 'gauge', group: 'context', color: '#a7b2bf', unheated: true },
@@ -377,7 +379,8 @@ const STATIONS = [
   { id: 'TRUC1', name: 'Truckee #2 SNOTEL', short: 'Truckee #2', elev: 6513, lat: 39.30087, lon: -120.18407, net: 'SNOTEL 834', mode: 'ratchet', role: 'gauge', group: 'context', color: '#cfccc3' },
 ];
 const STN = Object.fromEntries(STATIONS.map(s => [s.id, s]));
-const SYN_IDS = STATIONS.filter(s => s.mode !== 'geonor').map(s => s.id);
+const SYN_IDS = STATIONS.filter(s => s.mode !== 'geonor' && s.mode !== 'usgs').map(s => s.id);
+const USGS_PRECIP_SITE = '392724120171001'; // Independence C precip gage nr Truckee, 15 min, not on MesoWest
 const GAUGES = STATIONS.filter(s => s.role === 'gauge');
 const PRECIP_ALL = STATIONS.filter(s => s.mode);
 const CORE = ['SGHP', 'ILKC1']; // the two gauges in the basin
@@ -538,8 +541,8 @@ async function loadSynoptic(a, b) {
 function processPrecip(st, mode) {
   const out = { obs: [], incs: [], dropped: 0 };
   if (!st || !mode) return out;
-  if (mode === 'ten' || mode === 'hour') {
-    const a = st.v[mode === 'ten' ? 'precip_accum_ten_minute' : 'precip_accum_one_hour'], span = mode === 'ten' ? 10 * MIN : HOUR;
+  if (mode === 'ten' || mode === 'hour' || mode === 'fifteen') {
+    const a = st.v[mode === 'ten' ? 'precip_accum_ten_minute' : mode === 'fifteen' ? 'precip_accum_fifteen' : 'precip_accum_one_hour'], span = mode === 'ten' ? 10 * MIN : mode === 'fifteen' ? 15 * MIN : HOUR;
     if (!a) return out;
     for (let i = 0; i < st.t.length; i++) {
       const v = a[i]; if (v == null || !isFinite(v)) continue;
@@ -948,10 +951,11 @@ function radarAmount(a, b) {
 async function loadUSGS(a, b) {
   // Requests older than ~120 d are redirected to the archive host and browsers get an empty body.
   const host = a < Date.now() - 110 * DAY ? 'nwis.waterservices.usgs.gov' : 'waterservices.usgs.gov';
-  const d = await fetchJSON(`https://${host}/nwis/iv/?sites=${USGS_SITE}&parameterCd=00060,00010,00065&startDT=${isoMin(a)}&endDT=${isoMin(b)}&format=json&siteStatus=all`);
-  const out = { q: { t: [], v: [] }, wt: { t: [], v: [] }, gh: { t: [], v: [] } };
+  const d = await fetchJSON(`https://${host}/nwis/iv/?sites=${USGS_SITE},${USGS_PRECIP_SITE}&parameterCd=00060,00010,00065,00045&startDT=${isoMin(a)}&endDT=${isoMin(b)}&format=json&siteStatus=all`);
+  const out = { q: { t: [], v: [] }, wt: { t: [], v: [] }, gh: { t: [], v: [] }, p: { t: [], v: [] } };
   for (const ts of d.value.timeSeries || []) {
-    const code = ts.variable.variableCode[0].value, nd = ts.variable.noDataValue, key = code === '00060' ? 'q' : code === '00010' ? 'wt' : code === '00065' ? 'gh' : null;
+    const site = ts.sourceInfo.siteCode[0].value, code = ts.variable.variableCode[0].value, nd = ts.variable.noDataValue;
+    const key = site === USGS_PRECIP_SITE ? (code === '00045' ? 'p' : null) : code === '00060' ? 'q' : code === '00010' ? 'wt' : code === '00065' ? 'gh' : null;
     if (!key) continue;
     for (const p of ts.values[0].value) { const x = +p.value; if (isFinite(x) && x !== nd && (key === 'wt' || x >= 0)) { out[key].t.push(Date.parse(p.dateTime)); out[key].v.push(x); } }
   }
@@ -1091,8 +1095,8 @@ function tickPlan(span, px) {
   if (pxDay >= 330) return { step: 3, every: 3 };
   if (pxDay >= 170) return { step: 3, every: 6 };
   if (pxDay >= 95) return { step: 6, every: 12 };
-  if (pxDay >= 40) return { step: 12, every: 0 };
-  return { step: 24, every: 0, dateEvery: Math.ceil(60 / pxDay) };
+  if (pxDay >= 70) return { step: 12, every: 0 }; // a date label ("Thu 10/15") needs about 60 px
+  return { step: 24, every: 0, dateEvery: Math.ceil(70 / pxDay) };
 }
 function timeTicks(min, max, px) {
   const span = max - min, plan = tickPlan(span, px), out = [];
@@ -1213,9 +1217,9 @@ const shading = () => ({ events: S.events.map((e, i) => ({ start: e.start, end: 
 const T_END = () => Math.min(S.win.b, Date.now());
 const VIEW = () => S.view || [S.win.a, S.win.b];
 function setView(v) { S.view = v; document.querySelectorAll('.zoom-reset').forEach(b => b.classList.toggle('hidden', !v)); safe(renderFig1, 'fig1'); safe(renderWT, 'wt'); }
-const stA = s => `<a href="${mesoLink(s.id)}" target="_blank" rel="noopener">${s.id === 'SGHP' ? 'Dendra' : s.id}</a>`;
+const stA = s => `<a href="${mesoLink(s.id)}" target="_blank" rel="noopener">${s.id === 'SGHP' ? 'Dendra' : s.id === 'USGSP' ? 'USGS' : s.id}</a>`;
 // The field station gauge carries the tower's temperature (S.syn.SGHP is built from SGHEN in processAll).
-const lastObs = id => { const p = S.P[id]; if (id === 'SGHP') return p && p.obs.length ? p.obs[bisectRight(p.obs, T_END()) - 1] : null; const st = S.syn && S.syn[id]; return st && st.t.length ? st.t[bisectRight(st.t, T_END()) - 1] : null; };
+const lastObs = id => { const p = S.P[id]; if (id === 'SGHP' || id === 'USGSP') return p && p.obs.length ? p.obs[bisectRight(p.obs, T_END()) - 1] : null; const st = S.syn && S.syn[id]; return st && st.t.length ? st.t[bisectRight(st.t, T_END()) - 1] : null; };
 
 function summaryParts() {
   const T = T_END(), live = S.win.b >= Date.now() - 10 * MIN, o = {};
@@ -1512,19 +1516,19 @@ function initMap() {
 function popupStation(s) {
   const p = S.P[s.id], T = T_END(), w = sumPrecip(p, S.win.a, S.win.b), st = S.syn && S.syn[s.tempFrom || s.id];
   const last = lastObs(s.id), ta = st && nearestValue(st, 'air_temp', T, 2 * HOUR);
-  return `<b>${s.name}</b><br>${ft(s.elev)} ft · run by ${s.net}${s.id === 'SGHP' ? ' (Dendra)' : ` · MesoWest ${s.id}`}<br>${s.mode ? `Window: ${w.status === 'nodata' ? 'no data' : mmStr(w.mm) + ' mm'}<br>` : ''}${ta != null ? `Air ${cToF(ta).toFixed(0)} °F<br>` : ''}${last ? `Last report ${fmtWhen(last)}<br>` : ''}<a href="${mesoLink(s.id)}" target="_blank" rel="noopener">${s.id === 'SGHP' ? 'Dendra station page' : 'MesoWest page'}</a>`;
+  return `<b>${s.name}</b><br>${ft(s.elev)} ft · run by ${s.net}${s.id === 'SGHP' ? ' (Dendra)' : s.id === 'USGSP' ? ` · site ${USGS_PRECIP_SITE}` : ` · MesoWest ${s.id}`}<br>${s.mode ? `Window: ${w.status === 'nodata' ? 'no data' : mmStr(w.mm) + ' mm'}<br>` : ''}${ta != null ? `Air ${cToF(ta).toFixed(0)} °F<br>` : ''}${last ? `Last report ${fmtWhen(last)}<br>` : ''}<a href="${mesoLink(s.id)}" target="_blank" rel="noopener">${s.id === 'SGHP' ? 'Dendra station page' : s.id === 'USGSP' ? 'USGS site page' : 'MesoWest page'}</a>`;
 }
 function renderMap() {
   initMap(); if (!map) return;
   stationLayer.clearLayers();
   const OFF = { left: [-7, 0], right: [7, 0], top: [0, -7], bottom: [0, 7] };
   const label = (m, txt, dir = 'right', muted = false) => m.bindTooltip(txt, { permanent: true, direction: dir, className: muted ? 'stlab ctx' : 'stlab', offset: OFF[dir] });
-  const DIR = { SGHP: 'top', NV012: 'bottom', ICPC1: 'right', ICKC1: 'right', ILKC1: 'left' }, NOLABEL = new Set(['SGHEN']), SNOTEL_IDS = { ILKC1: 541, ICPC1: 539, ICKC1: 540, CSSC1: 428, TRUC1: 834 };
+  const DIR = { SGHP: 'top', NV012: 'bottom', ICPC1: 'right', ICKC1: 'right', ILKC1: 'left', USGSP: 'left' }, NOLABEL = new Set(['SGHEN']), SNOTEL_IDS = { ILKC1: 541, ICPC1: 539, ICKC1: 540, CSSC1: 428, TRUC1: 834 };
   for (const s of STATIONS) {
     if (SNOTEL_IDS[s.id]) continue; // drawn as SNOTEL triangles below
     const f = isNear(s);
     const m = L.circleMarker([s.lat, s.lon], { radius: f ? 6 : 4, color: f ? '#111' : '#8a8a86', weight: f ? 1.2 : 0.8, fillColor: s.mode ? stColor(s) : '#fff', fillOpacity: 1 }).bindPopup(popupStation(s));
-    (NOLABEL.has(s.id) ? m : label(m, s.id === 'SGHP' ? 'Field station' : s.short, DIR[s.id] || 'right', !f)).addTo(stationLayer);
+    (NOLABEL.has(s.id) ? m : label(m, s.id === 'SGHP' ? 'Field station' : s.id === 'USGSP' ? 'USGS precip' : s.short, DIR[s.id] || 'right', !f)).addTo(stationLayer);
   }
   for (const s of STATIONS.filter(x => SNOTEL_IDS[x.id])) {
     const ic = L.divIcon({ className: '', html: `<svg width="12" height="12" viewBox="0 0 12 12"><path d="M6 1 L11 11 L1 11 Z" fill="${isNear(s) ? '#111' : '#8a8a86'}"/></svg>`, iconSize: [12, 12], iconAnchor: [6, 7] });
@@ -1698,6 +1702,8 @@ function processAll() {
   if (S.syn) for (const s of PRECIP_ALL) if (s.mode !== 'geonor') S.P[s.id] = processPrecip(S.syn[s.id], s.mode);
   if (S.geoRows) { S.geo = processGeonor(S.geoRows); const used = new Set(S.geo.obs); S.geo.badAt = S.geoRows.filter(r => !used.has(r.t)).map(r => r.t); S.P.SGHP = S.geo; }
   if (S.syn && S.syn.SGHEN) S.syn.SGHP = { id: 'SGHP', t: S.syn.SGHEN.t, v: { air_temp: S.syn.SGHEN.v.air_temp } };
+  if (S.usgs && S.usgs.p.t.length) S.P.USGSP = processPrecip({ t: S.usgs.p.t, v: { precip_accum_fifteen: S.usgs.p.v.map(x => x * 25.4) } }, 'fifteen'); // 15 min totals in inches
+  if (S.syn && S.syn.ICPC1) S.syn.USGSP = { id: 'USGSP', t: S.syn.ICPC1.t, v: { air_temp: S.syn.ICPC1.v.air_temp } };
   corroborate(S.P, Object.keys(S.P));
   confirmProvisional();
   if (S.syn) { for (const s of PRECIP_ALL) if (s.unheated) markMelt(S.P[s.id], S.syn[s.id]); S.fl = freezingLevel(S.syn, S.win.a, S.win.b); }
@@ -1718,7 +1724,11 @@ function renderAll() {
   safe(renderStorms, 'storms'); safe(renderSummary, 'summary'); safe(renderFig1, 'fig1'); safe(renderMap, 'map'); safe(renderElev, 'elev');
   safe(renderStationTable, 'stations'); safe(renderSWE, 'swe'); safe(renderWT, 'wt'); safe(renderForecast, 'forecast');
 }
-function loadCams() { const v = Math.floor(Date.now() / (15 * MIN)); document.querySelectorAll('img[data-cam]').forEach(im => { im.src = `https://phenocam.nau.edu/data/latest/${im.dataset.cam}.jpg?v=${v}`; }); }
+function loadCams() {
+  const v = Math.floor(Date.now() / (15 * MIN)), w = Math.floor(Date.now() / MIN);
+  document.querySelectorAll('img[data-cam]').forEach(im => { im.src = `https://phenocam.nau.edu/data/latest/${im.dataset.cam}.jpg?v=${v}`; });
+  document.querySelectorAll('img[data-alert]').forEach(im => { im.src = `https://cameras.alertcalifornia.org/public-camera-data/${im.dataset.alert}/latest-frame.jpg?v=${w}`; });
+}
 let loadSeq = 0;
 async function loadAll() {
   const seq = ++loadSeq;
