@@ -1,0 +1,1857 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sagehen Hydromet</title>
+<meta name="description" content="Sagehen Creek near Truckee, California: weighing gauge, SNOTEL and radar precipitation, rain line, USGS streamflow, snowpack, forecast and cameras.">
+<meta name="theme-color" content="#eef0f2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%A7%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #e9edf1;
+    --card: #ffffff;
+    --ink: #161616;
+    --ink2: #4a4a48;
+    --ink3: #6b6a66;
+    --rule: #1f1f1f;
+    --edge: #d4d2ca;
+    --hair: #e4e2db;
+    --radar: #eb6834;
+    --flag: #a35a00;
+    --bad: #b3261e;
+    --good: #2e7d32;
+    --link: #1c5cab;
+  }
+  html { background-color: var(--paper); background-image: linear-gradient(180deg, #e3e9ef 0%, #eef1f4 320px, #eef1f4 100%); background-attachment: fixed; min-height: 100%; }
+  body {
+    margin: 0; color: var(--ink); background-color: transparent;
+    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif; font-size: 14px; line-height: 1.4;
+    padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+             max(20px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    -webkit-text-size-adjust: 100%;
+  }
+  .page { max-width: 1500px; margin: 0 auto; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  /* top bar */
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 12px 16px; margin-bottom: 12px; background: var(--card);
+    border: 1px solid var(--edge); border-top: 4px solid #0072B2; border-radius: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05), 0 8px 22px rgba(11,29,46,0.07); }
+  .bar .brand { display: flex; flex-direction: column; margin-right: 8px; }
+  .bar .brand small { font-size: 0.72rem; color: var(--ink2); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+  .bar .status a { color: var(--link); }
+  .bar h1 { margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.015em; margin-right: 6px; }
+  .bar .grow { flex: 1 1 auto; }
+  .seg { display: inline-flex; border: 0.75px solid var(--rule); border-radius: 3px; overflow: hidden; background: var(--card); }
+  .seg button { background: none; border: 0; border-right: 0.75px solid var(--rule); padding: 3px 9px; font: inherit; font-size: 0.84rem; color: var(--ink); cursor: pointer; }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--ink); color: #fff; }
+  .btn { background: var(--card); border: 0.75px solid var(--rule); border-radius: 3px; padding: 3px 9px; font: inherit; font-size: 0.84rem; color: var(--ink); cursor: pointer; }
+  .btn.on { background: var(--ink); color: #fff; }
+  input, select { font: inherit; font-size: 0.84rem; color: var(--ink); background: var(--card); border: 0.75px solid #9a988f; border-radius: 3px; padding: 2px 5px; max-width: 100%; }
+  input[type=number] { width: 3.6rem; }
+  .custom { font-size: 0.84rem; display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  .status { font-size: 0.74rem; color: var(--ink3); width: 100%; }
+  .status span { margin-right: 10px; white-space: nowrap; }
+  .status .ok::before, .status .warn::before, .status .err::before, .status .loading::before { content: "●"; margin-right: 3px; }
+  .status .ok::before { color: var(--good); } .status .warn::before { color: var(--flag); } .status .err::before { color: var(--bad); } .status .loading::before { color: var(--ink3); }
+  /* tiles */
+  .tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
+  .tile { position: relative; background: var(--card); border: 1px solid var(--edge); border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05), 0 6px 16px rgba(11,29,46,0.06); padding: 9px 12px 6px; min-width: 0; border-top: 4px solid var(--acc, var(--ink)); }
+  .tile .k { font-size: 0.68rem; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+  .tile .v { font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile .s { font-size: 0.74rem; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile.alert { border-color: var(--radar); }
+  .tile.alert .v { color: var(--radar); }
+  @media (max-width: 1100px) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tile .s { white-space: normal; overflow: visible; line-height: 1.3; } .tile .v { font-size: 1.15rem; white-space: normal; } }
+  .alertline { font-size: 0.82rem; color: var(--flag); margin: -2px 0 8px; }
+  .alertline:empty { display: none; }
+  /* dashboard grid */
+  .dash { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 8px; align-items: start; }
+  .col { display: grid; gap: 8px; min-width: 0; }
+  .row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+  .row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+  .plab.season { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--hair); }
+  @media (max-width: 980px) { .dash, .row3, .row2 { grid-template-columns: minmax(0, 1fr); } }
+  .card { background: var(--card); border: 1px solid var(--edge); border-radius: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05), 0 8px 22px rgba(11,29,46,0.07); padding: 12px 14px 14px; min-width: 0; }
+  .ch { padding-bottom: 8px; border-bottom: 1px solid var(--hair); margin-bottom: 4px; }
+  .ch h3 .fl { color: #0072B2; }
+  .inch { color: var(--ink3); font-size: 0.86em; font-weight: 600; }
+  .ch { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 2px; }
+  .ch h3 { margin: 0; font-size: 0.98rem; font-weight: 800; letter-spacing: -0.005em; }
+  .ch .u { font-size: 0.76rem; color: var(--ink2); }
+  .ch .r { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; font-size: 0.78rem; }
+  .info { position: relative; }
+  .info > summary { list-style: none; cursor: pointer; color: var(--ink3); font-size: 0.8rem; display: inline-block; width: 15px; height: 15px; line-height: 14px; text-align: center; border: 0.75px solid var(--ink3); border-radius: 50%; }
+  .info > summary::-webkit-details-marker { display: none; }
+  .info[open] > summary { color: #fff; background: var(--ink); border-color: var(--ink); }
+  .info .pop { font-size: 0.78rem; color: var(--ink2); line-height: 1.5; background: #fff; border: 0.75px solid var(--rule); padding: 8px 10px; margin: 6px 0 4px; }
+  .plab { font-size: 0.86rem; color: var(--ink); margin: 14px 0 0; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .plab .pt { font-weight: 800; font-size: 0.95rem; }
+  .plab .pl { font-weight: 800; font-size: 1.2rem; line-height: 1; }
+  ul.kb { margin: 3px 0 0; padding-left: 1.15rem; font-size: 0.82rem; font-weight: 600; color: var(--ink); }
+  ul.kb:empty { display: none; }
+  .mleg { display: flex; flex-wrap: wrap; gap: 1px 12px; font-size: 0.74rem; font-weight: 700; margin: 3px 0 0 4px; line-height: 1.35; }
+  .mleg i { display: inline-block; width: 10px; height: 3px; margin-right: 4px; vertical-align: 3px; }
+  .bandkey { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.78rem; font-weight: 600; color: var(--ink2); margin: 8px 0 0; }
+  .bandkey i { display: inline-block; width: 14px; height: 10px; margin-right: 5px; vertical-align: 0; }
+  ul.kb li { margin: 1px 0; }
+  ul.kb li::marker { color: #0072B2; }
+  ul.kb .flag { color: #D55E00; }
+  .plab .u { color: var(--ink2); }
+  .cbox canvas { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .cbox { position: relative; height: 136px; touch-action: pan-y pinch-zoom; }
+  .cbox.hr { height: 168px; } .cbox.cum { height: 168px; } .cbox.q { height: 150px; } .cbox.side { height: 236px; }
+  @media (max-width: 600px) { .cbox { height: 195px; } .cbox.hr, .cbox.cum { height: 210px; } .cbox.q { height: 200px; } .cbox.side { height: 230px; } }
+  .zoomnote { font-size: 0.74rem; color: var(--ink3); }
+  p.cap { font-size: 0.78rem; color: var(--ink2); line-height: 1.5; margin: 6px 0 0; }
+  p.cap b { color: var(--ink); }
+  p.key { font-size: 0.86rem; font-weight: 600; color: var(--ink); line-height: 1.45; margin: 10px 0 0; padding: 6px 10px; border-left: 3px solid #0072B2; background: #f3f7fb; border-radius: 0 4px 4px 0; }
+  p.key:empty { display: none; }
+  p.key .flag { color: var(--flag); }
+  #map { height: 360px; border: 0.75px solid var(--edge); background: #eee; }
+  @media (max-width: 600px) { #map { height: 300px; } }
+  .leaflet-container { font-family: inherit; }
+  .stlab { background: rgba(255, 255, 255, 0.85) !important; border: 0 !important; box-shadow: none !important; padding: 0 3px !important; font-size: 10.5px !important; color: #111 !important; }
+  .stlab::before { display: none !important; }
+  .radar-ctl { display: flex; gap: 8px; align-items: center; font-size: 0.78rem; margin-top: 6px; }
+  .radar-ctl input[type=range] { flex: 1 1 auto; min-width: 80px; accent-color: var(--radar); }
+  .radar-ctl .lbl { color: var(--ink2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .legend-row { display: flex; flex-wrap: wrap; gap: 3px 12px; font-size: 0.72rem; color: var(--ink2); margin-top: 5px; }
+  .legend-row i { display: inline-block; width: 9px; height: 9px; margin-right: 4px; vertical-align: -1px; }
+  /* tables */
+  .tscroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.78rem; font-variant-numeric: tabular-nums; border-top: 1.25px solid var(--rule); border-bottom: 1.25px solid var(--rule); }
+  thead th { border-bottom: 1px solid var(--rule); font-weight: 800; text-align: right; padding: 4px 6px; white-space: nowrap; vertical-align: bottom; }
+  td { padding: 3px 6px; text-align: right; white-space: nowrap; vertical-align: top; }
+  th.l, td.l { text-align: left; }
+  tr.grp td { font-weight: 700; padding-top: 6px; text-align: left; border-top: 0.75px solid var(--hair); }
+  tbody tr.click { cursor: pointer; }
+  tbody tr.click:hover, tbody tr.click.sel { background: rgba(0, 0, 0, 0.05); }
+  td .sw { display: inline-block; width: 8px; height: 8px; margin-right: 5px; }
+  td .op { color: var(--ink3); font-size: 0.92em; margin-left: 4px; }
+  tr.ctx td { color: var(--ink3); }
+  tr.ctx td a { color: #6f8fb8; }
+  .stlab.ctx { color: #77756f !important; font-size: 9.5px !important; background: rgba(255,255,255,0.6) !important; }
+  .tnote { font-size: 0.72rem; color: var(--ink2); margin: 5px 0 0; line-height: 1.45; }
+  sup.f { color: var(--flag); font-weight: 700; margin-left: 1px; }
+  .muted { color: var(--ink3); } .flag { color: var(--flag); } .bad { color: var(--bad); }
+  /* bottom drawer */
+  .drawer { margin-top: 10px; background: var(--card); border: 0.75px solid var(--edge); padding: 8px 10px; }
+  .drawer > summary { cursor: pointer; font-weight: 700; font-size: 0.86rem; }
+  .drawer details { margin-top: 8px; }
+  .drawer details > summary { cursor: pointer; color: var(--link); font-size: 0.82rem; }
+  .controls { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 0.82rem; margin-top: 6px; }
+  textarea.readout { width: 100%; min-height: 180px; box-sizing: border-box; resize: vertical; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.74rem; line-height: 1.45; color: var(--ink); background: #fff; border: 0.75px solid #9a988f; padding: 8px; margin-top: 6px; }
+  .methods { font-size: 0.8rem; color: var(--ink2); line-height: 1.5; }
+  .methods h3 { color: var(--ink); font-size: 0.84rem; margin: 12px 0 4px; }
+  .methods ul { margin: 4px 0; padding-left: 1.1rem; }
+  pre.tests { white-space: pre-wrap; font-size: 0.74rem; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; margin: 8px 0 0; }
+  .pass { color: var(--good); } .fail { color: var(--bad); }
+  footer { font-size: 0.72rem; color: var(--ink3); margin-top: 10px; line-height: 1.55; }
+  .hidden { display: none !important; }
+  .cbox.side.fc { height: 150px; }
+  .radar-ctl { flex-wrap: wrap; } .radar-ctl .lbl { white-space: normal; }
+  @media (max-width: 600px) { .cbox.side.fc { height: 170px; } }
+  .cams { margin-top: 8px; }
+  .camgrid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px; margin-top: 8px; }
+  @media (max-width: 760px) { .camgrid { grid-template-columns: minmax(0, 1fr); } }
+  .camgrid figure { margin: 0; min-width: 0; }
+  .camgrid img { width: 100%; aspect-ratio: 1296 / 960; object-fit: cover; display: block; background: #dfe3e6; border: 0.75px solid var(--edge); }
+  .camgrid figcaption { font-size: 0.76rem; color: var(--ink2); margin-top: 3px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="bar">
+  <div class="brand"><h1>Sagehen Hydromet</h1></div>
+  <span class="seg" id="presets"><button data-p="24h">24 h</button><button data-p="72h">72 h</button><button data-p="7d">7 d</button><button data-p="30d">30 d</button><button data-p="wy">WY</button></span>
+  <span class="custom"><input type="datetime-local" id="cs" aria-label="Start"> to <input type="datetime-local" id="ce" aria-label="End"> <button class="btn" id="apply-custom">Go</button></span>
+  <button class="btn" id="refresh">Refresh</button>
+  <span class="grow"></span>
+  <span class="zoomnote" id="meta"></span>
+  <div class="status" id="status"></div>
+</div>
+
+<div class="tiles" id="tiles"></div>
+<div class="alertline" id="alertline"></div>
+
+<div class="dash">
+  <div class="col">
+    <div class="card">
+      <div class="ch"><h3>Precipitation and creek flow</h3><span class="u" id="ts-range"></span>
+        <span class="r"><label><input type="checkbox" id="show-radar" checked> radar</label><button class="btn hidden zoom-reset" id="zoom-reset">Full window</button></span></div>
+      <div class="bandkey"><span><i style="background:rgba(0,0,0,0.12)"></i>Storm N: recorded by the gauges</span></div>
+      <div class="plab"><b class="pl">a</b><span class="pt">Precipitation</span><span class="u">mm h⁻¹</span></div><ul class="kb" id="kb-a"></ul><div class="cbox hr"><canvas id="p-hr"></canvas></div>
+      <div class="plab"><b class="pl">b</b><span class="pt">Running total by gauge</span><span class="u">mm</span></div><ul class="kb" id="kb-b"></ul><div class="cbox cum"><canvas id="p-cum"></canvas></div>
+      <div class="plab"><b class="pl">c</b><span class="pt">Sagehen Creek flow</span><span class="u">cfs</span></div><ul class="kb" id="kb-c"></ul><div class="cbox q"><canvas id="p-q"></canvas></div>
+      <p class="cap" id="cap1"></p>
+      <div class="zoomnote">Phone: tap or slide to read values (tap outside a chart to close the readout); press and hold, then drag to zoom a period; double tap to reset. Mouse: drag to zoom, double click to reset. Click a storm to zoom to it.</div>
+    </div>
+    <div class="card">
+      <div class="ch"><h3>Snowpack</h3><span class="u">SNOTEL and station sensors</span>
+        <span class="r"><button class="btn hidden zoom-reset">Full window</button></span></div>
+      <div class="plab"><b class="pl">d</b><span class="pt">Snow water equivalent</span><span class="u">in</span></div><ul class="kb" id="kb-swew"></ul><div class="cbox"><canvas id="p-swew"></canvas></div>
+      <div class="plab"><b class="pl">e</b><span class="pt">Snow depth</span><span class="u">in</span></div><ul class="kb" id="kb-f"></ul><div class="cbox"><canvas id="p-snow"></canvas></div>
+      <p class="cap" id="cap-snow"></p>
+      <div class="plab season"><span class="pt">Season so far, since Oct 1</span></div>
+      <div class="plab"><span class="pt">Snow water equivalent</span><span class="u">in</span></div>
+      <div class="cbox side"><canvas id="p-swe"></canvas></div>
+      <div class="plab"><span class="pt">Snow depth</span><span class="u">in</span></div>
+      <div class="cbox side"><canvas id="p-snwd"></canvas></div>
+      <ul class="kb" id="kb-swe"></ul><p class="cap" id="cap3"></p>
+    </div>
+    <div class="card">
+      <div class="ch"><h3>Rain line and temperature</h3>
+        <span class="r"><button class="btn hidden zoom-reset">Full window</button></span></div>
+      <div class="plab"><b class="pl">f</b><span class="pt">Rain line</span><span class="u">ft</span></div><ul class="kb" id="kb-e"></ul><div class="cbox"><canvas id="p-fl"></canvas></div>
+      <div class="plab"><b class="pl">g</b><span class="pt">Air temperature</span><span class="u">°F</span></div><ul class="kb" id="kb-d"></ul><div class="cbox"><canvas id="p-temp"></canvas></div>
+      <p class="cap" id="cap-temp"></p>
+      <div class="zoomnote">Phone: tap or slide to read values (tap outside a chart to close the readout); press and hold, then drag to zoom a period; double tap to reset. Mouse: drag to zoom, double click to reset. Click a storm to zoom to it.</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card">
+      <div class="ch"><h3>Map and radar</h3><span class="u">Sagehen Creek above the USGS gauge, 27.7 km²</span>
+        </div>
+      <div id="map"></div>
+      <div class="radar-ctl"><button class="btn" id="radar-play" aria-label="Play radar">▶</button><label><input type="checkbox" id="map-radar" checked> Radar</label>
+        <input type="range" id="radar-t" min="0" max="0" value="0" aria-label="Radar time"><span class="lbl" id="radar-lbl"></span></div>
+      <div class="legend-row"><span><i style="background:#256abf;border-radius:50%"></i>Precip gauge</span><span><i style="background:#fff;border:1.5px solid #111;border-radius:50%"></i>Temp/wind only</span><span><i style="background:#111;clip-path:polygon(50% 0,100% 100%,0 100%)"></i>SNOTEL</span><span><i style="background:#111"></i>Stream gauge</span><span><i style="background:#111;border-radius:2px;transform:rotate(45deg)"></i>Camera</span></div>
+      <p class="cap" id="cap2"></p>
+    </div>
+    <div class="card">
+      <div class="ch"><h3>Forecast</h3><span class="u" id="fc-src"></span>
+        <span class="r"><button class="btn hidden" id="zoom-reset-f">Full forecast</button></span></div>
+      <div class="plab"><b class="pl">h</b><span class="pt">Chance of precipitation</span><span class="u">%</span></div><ul class="kb" id="kb-fc"></ul><div class="cbox side fc"><canvas id="p-fpop"></canvas></div>
+      <div class="plab"><b class="pl">i</b><span class="pt">Forecast amount</span><span class="u">mm per period</span></div><div class="cbox side fc"><canvas id="p-fqpf"></canvas></div>
+      <div class="plab"><b class="pl">j</b><span class="pt">Snow level</span><span class="u">ft</span></div><div class="cbox side fc"><canvas id="p-fsnow"></canvas></div>
+      <p class="cap" id="cap-fc"></p>
+    </div>
+    <div class="card">
+      <div class="ch"><h3>Storms</h3><span class="u" id="storm-def"></span></div>
+      <div class="tscroll"><table id="t-storms"></table></div>
+      <p class="cap" id="t-storms-note"></p>
+    </div>
+    <div class="card">
+      <div class="ch"><h3>Stations</h3><span class="u" id="st-asof"></span></div>
+      <div class="tscroll"><table id="t-stations"></table></div>
+      <p class="cap" id="t-stations-note"></p>
+    </div>
+  </div>
+</div>
+
+<div class="row2">
+  <div class="card">
+    <div class="ch"><h3>Precipitation and elevation</h3><span class="u">window total</span></div>
+    <div class="cbox side"><canvas id="p-elev"></canvas></div>
+    <ul class="kb" id="kb-elev"></ul><p class="cap" id="cap-elev"></p>
+  </div>
+  <div class="card">
+    <div class="ch"><h3>Creek water temperature</h3><span class="u">USGS 10343500, °F</span></div>
+    <div class="cbox side"><canvas id="p-wt"></canvas></div>
+    <ul class="kb" id="kb-wt"></ul><p class="cap" id="cap-wt"></p>
+  </div>
+</div>
+
+<div class="card cams">
+  <div class="ch"><h3>Cameras</h3><span class="u">PhenoCam Network, field station flux tower</span></div>
+  <div class="camgrid">
+    <figure><a href="https://phenocam.nau.edu/webcam/sites/sagehen/" target="_blank" rel="noopener"><img data-cam="sagehen" alt="Sagehen above canopy camera" loading="lazy"></a><figcaption><b>Above the canopy</b>, looking across the basin from the flux tower</figcaption></figure>
+    <figure><a href="https://phenocam.nau.edu/webcam/sites/sagehen2/" target="_blank" rel="noopener"><img data-cam="sagehen2" alt="Sagehen fen camera 2" loading="lazy"></a><figcaption><b>Fen meadow</b>, beside the tower instruments</figcaption></figure>
+    <figure><a href="https://phenocam.nau.edu/webcam/sites/sagehen3/" target="_blank" rel="noopener"><img data-cam="sagehen3" alt="Sagehen fen camera 3" loading="lazy"></a><figcaption><b>Fen meadow</b>, second view</figcaption></figure>
+  </div>
+  <p class="cap" id="cap-cam">Latest daylight image from each camera (every 30 min from sunrise to sunset; the time is printed in the top left of each image, in PST). Snow on the ground, rime and frost show here before they show in the numbers. Cameras run by the Kirchner lab (ETH Zurich). Tap an image for the full archive.</p>
+</div>
+
+<details class="drawer">
+  <summary>Data, export, and methods</summary>
+  <details>
+    <summary>CSV export</summary>
+    <div class="controls">
+      <button class="btn" data-export="precip">Precip CSV</button>
+      <button class="btn" data-export="events">Storms CSV</button>
+      <button class="btn" data-export="flow">Flow CSV</button>
+      <button class="btn" data-export="radar">Radar CSV</button>
+      <button class="btn" data-export="snotel">SNOTEL CSV</button>
+      <button class="btn" data-export="geonor">Weighing gauge CSV</button>
+    </div>
+  </details>
+  <details>
+    <summary>Storm detection settings</summary>
+    <div class="controls">
+      <span>Detect from: <span id="det-boxes"></span></span>
+      <label>max gap <input type="number" id="gap-h" value="3" min="0.5" max="24" step="0.5"> h</label>
+      <label>threshold <input type="number" id="min-mm" value="1.0" min="0.25" max="50" step="0.25"> mm</label>
+      <button class="btn" id="apply-storm">Recompute</button>
+    </div>
+  </details>
+  <details id="methods-box">
+    <summary>Methods and QC</summary>
+    <div class="methods">
+
+    <h3>Which stations, and why</h3>
+    <ul>
+      <li><b>In the basin.</b> Sagehen Creek above the USGS gauge drains 27.7 km² from 6,330 ft at the gauge to about 8,740 ft on the crest. Three instruments sit in it or on its edge: the field station's East Meadow tower beside the gauge (6,337 ft; a Geonor weighing precipitation gauge plus temperature, humidity, wind and radiation at 25 and 100 ft, run by the UC Natural Reserve System), Independence Lake SNOTEL on the west ridge (541, 8,340 ft, the only snow pillow in the basin) and the USGS gauge itself.</li>
+      <li><b>Nearby.</b> Independence Camp (539, 6,970 ft) and Independence Creek (540, 6,440 ft) SNOTEL sites, 3 to 5 miles north, and the NV Energy gauge at Hobart Mills (6,030 ft, 3 miles southeast).</li>
+      <li><b>Context.</b> RAWS at Rice Canyon, Tahoe Donner and Stampede, and SNOTEL at the Central Sierra Snow Lab (Donner Summit) and Truckee #2. RAWS buckets are unheated.</li>
+      <li><b>Streamflow:</b> USGS 10343500 Sagehen Creek near Truckee, a Hydrologic Benchmark station with a record since 1953. Discharge, stage and water temperature every 15 min, provisional.</li>
+      <li><b>Radar:</b> amounts from NCEP Stage IV (radar adjusted to gauges, hourly) for windows up to 8 days and NOAA MRMS daily totals beyond, both from the IEM IEMRE point service at the basin center (39.432, -120.272). The NEXRAD mosaic (IEM, 5 min) is on the map and in the "radar now" tile. The Reno and Sacramento radars see the basin over the crest, so low snow is often missed.</li>
+    </ul>
+    <h3>Weighing gauge (field station)</h3>
+    <ul>
+      <li>The UC NRS Dendra feed still carries the gauge's raw vibrating wire frequency every 10 min, although its published millimetre series stopped in July 2020. From October 2017 to July 2020 the published bucket content was exactly content = 9.0948×10⁻⁵ f² − 0.028877 f − 73.951 mm (135,169 pairs, residual 0.09 mm, the same each year), the logger's own calibration. The page applies it to today's frequency.</li>
+      <li>Content is the median of the last hour (7 readings); precipitation counts when it rises 0.25 mm above the last level. A drop of more than 1 mm held for an hour (evaporation, servicing) or more than 15 mm at once (a drain: 10/2 and 12/23/2025, 2/17 and 7/13/2026) resets the level and counts nothing.</li>
+      <li>Frequencies outside 500 to 3,500 Hz are missing. Readings that span more than 8 mm within 30 min while swinging both up and down by more than 4 mm are a fault (August and September 2026, when the record jumped by tens of mm; left in, it added 485 mm of false rain in August). A fault lasting 2 h or more also drops the 3 h either side.</li>
+      <li>Checked against SNOTEL for 3 Oct 2025 to 31 Jul 2026: 889 mm here, 790 mm at Independence Camp and 1,199 mm at Independence Lake; two day totals correlate at r = 0.95 and 0.98. False precipitation over the dry spells of the year: 1.6 mm. It missed the 9/3 to 9/4/2026 storm while faulting.</li>
+    </ul>
+    <h3>Other gauges</h3>
+    <ul>
+      <li>SNOTEL storage gauges report hourly in 0.1 in (2.54 mm) steps and swing with temperature, by up to 10 mm over a day (Independence Creek, October 2026). Water that falls stays in the gauge and a thermal swing comes back down, so each gauge is read through its lowest value over the following 24 h and only new highs of that count. A rise less than 24 h old, or a single 0.1 in step of any age (slow drift: four sites each gained one step from 10/11 to 10/13/2026 with radar dry), counts only if the field station gauge, a bucket or Stage IV radar saw 0.5 mm or more within 3 h. A drop of more than 25 mm resets the high (the October season reset).</li>
+      <li>RAWS (Rice Canyon, Tahoe Donner, Stampede): first differences of cumulative <code>precip_accum</code>; negative steps count as 0; steps that span more than 30 min are flagged. Hobart Mills: sum of 10 min accumulations. Increments faster than 10 mm per 10 min are left out unless another gauge recorded precipitation within 30 min.</li>
+      <li>Unheated tipping buckets (RAWS and Hobart Mills) hold snow and tip when it melts. Their tips are marked possible melt, kept in their own totals and left out of storm detection, until their air has stayed at or above 1 °C for 24 h.</li>
+      <li>"No data" (no reports) is distinct from 0. A total is partial when its last report is more than 25 min before the end of the interval (more than 70 min for the hourly SNOTEL gauges).</li>
+    </ul>
+    <h3>Rain line</h3>
+    <ul><li>Each hour, a straight line is fit to air temperature against elevation for every station reporting (6,030 to 8,340 ft, ten stations); the rain line is where that line crosses 1 °C (34 °F). It is left blank when the fit is poor (r² &lt; 0.6) or temperature rises with height (an inversion, common in the Little Truckee basin on clear nights). Above about 9,500 ft it is an extrapolation beyond the highest station. Not yet checked against soundings here (at Alta the same method ran about 470 ft below the free air value while precipitating).</li></ul>
+    <h3>Storms and response</h3>
+    <ul>
+      <li>Increments from the detection gauges (default: the field station gauge and Independence Lake and Camp SNOTEL) are pooled in time order; a gap over 3 h starts a new group. A group is a storm when any detection gauge totals at least 1.0 mm.</li>
+      <li>Rain or snow: precipitation weighted mean of each gauge's own air temperature (the tower's for the field station gauge); below 1 °C (34 °F) is called mixed or snow.</li>
+      <li>Flow response at the USGS gauge: baseline is the time weighted mean of the 6 h before the start; peak is the maximum up to 48 h after the end, cut at the next storm. Lag runs to the peak from the centroid of the basin precipitation that fell before it. A clear response needs a rise of at least 3 gauge steps and 5% of the baseline; a peak before the centroid, or more than 12 h after it, gets no lag. From November to March, after a below freezing day at the tower, flow is marked ice possible (USGS: ice backs water up and raises stage with no change in flow; USGS edits these periods later).</li>
+      <li>Flow QC: a report far from the median of its five neighbors on each side is removed; a wild newest report is held until the next one confirms it.</li>
+    </ul>
+    <h3>Snow depth QC</h3>
+    <ul><li>SNOTEL depth comes from AWDB hourly data for windows up to 45 days (stamps are Pacific Standard Time) and daily data for longer windows. The Tahoe Donner RAWS sonic depth is shown after QC: values outside 0 to 4,000 mm are dropped, a nonzero depth unchanged for 48 h is a stuck sensor, and readings of 150 mm or less within 3 h of a 0 are bare ground noise. The tower's own depth sensor has sent nothing since August 2025.</li></ul>
+      <div style="margin-top:10px"><button class="btn" id="run-tests">Run parser self-test</button> <span class="muted">Unit tests, the weighing gauge calibration, and a live check of the 21 Dec 2025 storm.</span></div>
+      <pre class="tests hidden" id="test-out"></pre>
+    </div>
+  </details>
+</details>
+
+<footer id="sources"></footer>
+</div>
+
+<script src="keys.js"></script>
+<script>if (!window.WEATHER_KEYS) document.write('<script src="https://tyler-y42.github.io/Alta.Hydromet/keys.js"><\/script>'); // keys.js is not in this repo: use the Alta site copy</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+'use strict';
+
+/* ======================================================================
+   Configuration
+   ====================================================================== */
+const TZ = 'America/Los_Angeles';
+const TOKEN = (window.WEATHER_KEYS || {}).MESOWEST_TOKEN || '';
+const MIN = 60e3, HOUR = 3600e3, DAY = 86400e3;
+const SNOTEL_LOOK = 24 * 3600e3; // SNOTEL gauges are read through their lowest value over the next 24 h
+const SUSPECT_MM_PER_10 = 10, CORROB_MS = 30 * MIN, GAP_MS = 30 * MIN, PARTIAL_MS = 25 * MIN, REFETCH_MS = 72 * HOUR;
+const AWDB = 'https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1';
+const DENDRA = 'https://api.dendra.science/v2', GEONOR_DS = '5ae879acfe27f432a5102d70'; // Sagehen Creek station, "Precipitation Geonor Freq"
+const DENDRA_LINK = 'https://dendra.science/orgs/ucnrs/status/sagehen-creek';
+const USGS_SITE = '10343500', USGS_LINK = 'https://waterdata.usgs.gov/monitoring-location/USGS-10343500/';
+const mesoLink = id => id === 'SGHP' ? DENDRA_LINK : `https://mesowest.utah.edu/cgi-bin/droman/meso_base_dyn.cgi?stn=${id}`;
+
+// role: gauge (precip used), met (no precip used)
+// group: basin (in or on the edge of the watershed, the focus), near (within 5 miles), context (Truckee area)
+// SGHP is the field station's Geonor weighing gauge, read from UC NRS Dendra, not MesoWest; its temperature is the tower's (SGHEN).
+const STATIONS = [
+  { id: 'SGHP', name: 'Sagehen field station, weighing gauge', short: 'Field station', elev: 6337, lat: 39.4325, lon: -120.2369, net: 'UC NRS', mode: 'geonor', role: 'gauge', group: 'basin', color: '#0072B2', tempFrom: 'SGHEN' },
+  { id: 'ILKC1', name: 'Independence Lake SNOTEL', short: 'Independence Lake', elev: 8337, lat: 39.42752, lon: -120.31342, net: 'SNOTEL 541', mode: 'ratchet', role: 'gauge', group: 'basin', color: '#CC79A7' },
+  { id: 'SGHEN', name: 'Sagehen field station, tower', short: 'Station tower', elev: 6337, lat: 39.4325, lon: -120.2369, net: 'DRI', mode: null, role: 'met', group: 'basin', color: '#ffffff' },
+  { id: 'ICPC1', name: 'Independence Camp SNOTEL', short: 'Indep. Camp', elev: 6979, lat: 39.45269, lon: -120.29367, net: 'SNOTEL 539', mode: 'ratchet', role: 'gauge', group: 'near', color: '#009E73' },
+  { id: 'ICKC1', name: 'Independence Creek SNOTEL', short: 'Indep. Creek', elev: 6435, lat: 39.49001, lon: -120.28226, net: 'SNOTEL 540', mode: 'ratchet', role: 'gauge', group: 'near', color: '#56B4E9' },
+  { id: 'NV012', name: 'Hobart Mills', short: 'Hobart Mills', elev: 6030, lat: 39.40898, lon: -120.19495, net: 'NV Energy', mode: 'ten', role: 'gauge', group: 'near', color: '#E69F00', unheated: true },
+  { id: 'RNYC1', name: 'Rice Canyon RAWS', short: 'Rice Canyon', elev: 6943, lat: 39.52502, lon: -120.32884, net: 'RAWS', mode: 'accum', role: 'gauge', group: 'context', color: '#8e9bab', unheated: true },
+  { id: 'TADC1', name: 'Tahoe Donner RAWS', short: 'Tahoe Donner', elev: 7399, lat: 39.33819, lon: -120.27339, net: 'RAWS', mode: 'accum', role: 'gauge', group: 'context', color: '#7d8a99', unheated: true },
+  { id: 'SMDC1', name: 'Stampede RAWS', short: 'Stampede', elev: 6207, lat: 39.47109, lon: -120.08698, net: 'RAWS', mode: 'accum', role: 'gauge', group: 'context', color: '#a7b2bf', unheated: true },
+  { id: 'CSSC1', name: 'Central Sierra Snow Lab SNOTEL', short: 'CSS Lab', elev: 6892, lat: 39.32565, lon: -120.36807, net: 'SNOTEL 428', mode: 'ratchet', role: 'gauge', group: 'context', color: '#b5b3ab' },
+  { id: 'TRUC1', name: 'Truckee #2 SNOTEL', short: 'Truckee #2', elev: 6513, lat: 39.30087, lon: -120.18407, net: 'SNOTEL 834', mode: 'ratchet', role: 'gauge', group: 'context', color: '#cfccc3' },
+];
+const STN = Object.fromEntries(STATIONS.map(s => [s.id, s]));
+const SYN_IDS = STATIONS.filter(s => s.mode !== 'geonor').map(s => s.id);
+const GAUGES = STATIONS.filter(s => s.role === 'gauge');
+const PRECIP_ALL = STATIONS.filter(s => s.mode);
+const CORE = ['SGHP', 'ILKC1']; // the two gauges in the basin
+const SNOW_DEPTH_BLOCK = new Set();
+const TEMP_IDS = ['SGHEN', 'NV012', 'SMDC1', 'ICKC1', 'TRUC1', 'CSSC1', 'RNYC1', 'ICPC1', 'TADC1', 'ILKC1'];
+const TEMP_SHOW = ['ILKC1', 'ICPC1', 'SGHEN'];
+const BASIN_TOP = 8737, GAUGE_ELEV = 6331;
+
+const FLOW = [
+  { key: 'sagehen_q', name: 'Sagehen Creek near Truckee', lat: 39.4317, lon: -120.2369, elev: 6331, note: 'USGS 10343500, basin outlet', src: 'usgs', primary: true, link: USGS_LINK },
+];
+const SNOTEL = [
+  { trip: '541:CA:SNTL', name: 'Independence Lake', elev: 8340, num: 541, lat: 39.42752, lon: -120.31342, main: true },
+  { trip: '539:CA:SNTL', name: 'Independence Camp', elev: 6970, num: 539, lat: 39.45269, lon: -120.29367 },
+  { trip: '540:CA:SNTL', name: 'Independence Creek', elev: 6440, num: 540, lat: 39.49001, lon: -120.28226 },
+  { trip: '428:CA:SNTL', name: 'CSS Lab', elev: 6890, num: 428, lat: 39.32565, lon: -120.36807, ctx: true },
+];
+const SNC = { '541:CA:SNTL': '#CC79A7', '539:CA:SNTL': '#009E73', '540:CA:SNTL': '#56B4E9', '428:CA:SNTL': '#9a988f' };
+const MAIN_SNOTEL = '541:CA:SNTL';
+const snotelLink = n => `https://wcc.sc.egov.usda.gov/nwcc/site?sitenum=${n}`;
+// USGS NLDI basin for 10343500 (27.7 km²), simplified to 56 points (area within 0.1%).
+const BASIN = [[-120.2598,39.4077],[-120.2613,39.4067],[-120.2628,39.4091],[-120.2668,39.4104],[-120.2776,39.4083],[-120.281,39.4085],[-120.2853,39.4103],[-120.2906,39.4095],[-120.2945,39.4113],[-120.299,39.412],[-120.3004,39.4131],[-120.3029,39.4136],[-120.3079,39.4117],[-120.3103,39.412],[-120.3141,39.4115],[-120.3178,39.4138],[-120.3153,39.4204],[-120.316,39.4244],[-120.3111,39.4305],[-120.3073,39.4312],[-120.304,39.4346],[-120.2983,39.4381],[-120.2876,39.4434],[-120.2877,39.4443],[-120.2851,39.4469],[-120.2802,39.4503],[-120.2786,39.454],[-120.2728,39.4523],[-120.2698,39.4527],[-120.2669,39.4552],[-120.2662,39.4626],[-120.265,39.4635],[-120.2637,39.4634],[-120.2611,39.4607],[-120.2562,39.458],[-120.2518,39.4588],[-120.248,39.4574],[-120.2452,39.4545],[-120.244,39.4521],[-120.2423,39.4513],[-120.2416,39.4472],[-120.2425,39.4458],[-120.2454,39.445],[-120.2434,39.4375],[-120.2416,39.4354],[-120.2379,39.4337],[-120.2369,39.4313],[-120.2396,39.4279],[-120.2348,39.4113],[-120.2355,39.4091],[-120.2407,39.4102],[-120.2441,39.4091],[-120.2491,39.4052],[-120.251,39.4047],[-120.2561,39.409],[-120.2598,39.4077]];
+const CENTER = { lat: 39.432, lon: -120.272 };
+const NWS_GRID = 'https://api.weather.gov/gridpoints/REV/28,105';
+const CAMS = [
+  { id: 'sagehen', lat: 39.4315, lon: -120.2398, name: 'Above canopy camera' },
+  { id: 'sagehen2', lat: 39.4307, lon: -120.2407, name: 'Fen camera' },
+];
+
+/* Colors: ink for the main series, a sequential blue ramp for elevation (light-surface
+   steps of the validated reference palette), orange for radar, gray for comparison. */
+const RAMP = ['#86b6ef', '#6da7ec', '#5598e7', '#3987e5', '#2a78d6', '#256abf', '#1c5cab', '#184f95', '#104281', '#0d366b'];
+function elevColor(ftv) { const f = Math.max(0, Math.min(1, (ftv - 6000) / 3000)); return RAMP[Math.round(f * (RAMP.length - 1))]; }
+const INK = '#111111', INK2 = '#444444', INK3 = '#6b6b6b', RADAR = '#D55E00', NEIGHBOR = '#9a988f';
+const stColor = s => s.color || elevColor(s.elev);
+const isFocus = s => s.group === 'basin';
+const isNear = s => s.group === 'basin' || s.group === 'near';
+// A basin gauge reading exactly 0 while the other basin gauge and a nearby SNOTEL caught >= 1 mm is a failed gauge
+// for that interval; it stays in the table, flagged, but not in summary ranges.
+function precipOut(id, a, b) { return false; }
+function suspectZero(id, a, b) {
+  const s = STN[id]; if (!s || !isFocus(s)) return false;
+  const me = sumPrecip(S.P[id], a, b); if (me.status === 'nodata' || me.mm > 0) return false;
+  return GAUGES.filter(g => isNear(g) && g.id !== id).filter(g => { const r = sumPrecip(S.P[g.id], a, b); return r.status !== 'nodata' && r.mm >= 1; }).length >= 2;
+}
+
+/* ======================================================================
+   Time helpers (math in UTC ms, calendar and display in Pacific time)
+   ====================================================================== */
+const _pf = new Intl.DateTimeFormat('en-US', { timeZone: TZ, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', weekday: 'short' });
+function tzParts(ms) { const o = {}; for (const p of _pf.formatToParts(new Date(ms))) if (p.type !== 'literal') o[p.type] = p.value; return { y: +o.year, m: +o.month, d: +o.day, h: +o.hour % 24, mi: +o.minute, s: +o.second, wd: o.weekday }; }
+function tzOffset(ms) { const f = Math.floor(ms / 1000) * 1000, p = tzParts(f); return Date.UTC(p.y, p.m - 1, p.d, p.h, p.mi, p.s) - f; }
+function localToUtc(y, m, d, h = 0, mi = 0) { const g = Date.UTC(y, m - 1, d, h, mi); let t = g - tzOffset(g); const o2 = tzOffset(t); if (g - o2 !== t) t = g - o2; return t; }
+const midnightLocal = ms => { const p = tzParts(ms); return localToUtc(p.y, p.m, p.d); };
+function waterYearStart(ms) { const p = tzParts(ms); return localToUtc(p.m >= 10 ? p.y : p.y - 1, 10, 1); }
+const hh12 = (h, mi) => `${(h % 12) || 12}:${String(mi).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+const zoneAbbr = ms => (tzOffset(ms) === -7 * HOUR ? 'PDT' : 'PST');
+function fmtDT(ms, { wd = true, tz = false } = {}) { if (ms == null || !isFinite(ms)) return '—'; const p = tzParts(ms); return `${wd ? p.wd + ' ' : ''}${p.m}/${p.d} ${hh12(p.h, p.mi)}${tz ? ' ' + zoneAbbr(ms) : ''}`; }
+function fmtTime(ms) { const p = tzParts(ms); return hh12(p.h, p.mi); }
+function sameDay(a, b) { const x = tzParts(a), y = tzParts(b); return x.y === y.y && x.m === y.m && x.d === y.d; }
+function fmtSpan(a, b) { return `${fmtDT(a)} to ${sameDay(a, b) ? fmtTime(b) : fmtDT(b)}`; }
+function fmtWhen(ms) { return sameDay(ms, Date.now()) ? fmtTime(ms) : fmtDT(ms); }
+function ago(ms) { const d = Date.now() - ms; if (d < 90e3) return 'just now'; if (d < 90 * MIN) return `${Math.round(d / MIN)} min ago`; if (d < 36 * HOUR) return `${(d / HOUR).toFixed(1)} h ago`; return `${(d / DAY).toFixed(1)} d ago`; }
+const durTxt = ms => ms < 90 * MIN ? `${Math.round(ms / MIN)} min` : ms < 48 * HOUR ? `${(ms / HOUR).toFixed(1)} h` : `${(ms / DAY).toFixed(1)} d`;
+const synStamp = ms => new Date(ms).toISOString().replace(/[-:T]/g, '').slice(0, 12);
+const isoMin = ms => new Date(ms).toISOString().slice(0, 16) + 'Z';
+const localDate = ms => { const p = tzParts(ms); return `${p.y}-${String(p.m).padStart(2, '0')}-${String(p.d).padStart(2, '0')}`; };
+const localInput = ms => { const p = tzParts(ms); return `${localDate(ms)}T${String(p.h).padStart(2, '0')}:${String(p.mi).padStart(2, '0')}`; };
+function parseLocalInput(v) { const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(v || ''); return m ? localToUtc(+m[1], +m[2], +m[3], +m[4], +m[5]) : null; }
+
+/* ======================================================================
+   Numbers
+   ====================================================================== */
+const r3 = x => Math.round(x * 1000) / 1000;
+const mmStr = (mm, d = 2) => (mm == null || !isFinite(mm)) ? '—' : mm.toFixed(d);
+const inStr = mm => (mm == null || !isFinite(mm)) ? '—' : (mm / 25.4).toFixed(2);
+const mmIn = (mm, d = 1) => (mm == null || !isFinite(mm)) ? '—' : `${mm.toFixed(d)} mm (${(mm / 25.4).toFixed(2)} in)`;
+const cfs = q => (q == null || !isFinite(q)) ? '—' : (q >= 100 ? q.toFixed(0) : q >= 10 ? q.toFixed(1) : q.toFixed(2));
+const fToC = f => (f - 32) * 5 / 9;
+const cToF = c => c * 9 / 5 + 32; // temperatures are stored in °C and shown in °F
+const ft = n => Math.round(n).toLocaleString('en-US');
+function bisectRight(arr, x) { let lo = 0, hi = arr.length; while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m] <= x) lo = m + 1; else hi = m; } return lo; }
+
+/* ======================================================================
+   Fetch
+   ====================================================================== */
+async function fetchJSON(url, { tries = 3, timeout = 45000 } = {}) {
+  let last;
+  for (let i = 0; i < tries; i++) {
+    const ac = new AbortController(), timer = setTimeout(() => ac.abort(), timeout);
+    try {
+      const r = await fetch(url, { signal: ac.signal, cache: 'no-store' });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return JSON.parse(await r.text()); // truncated JSON throws and retries
+    } catch (e) {
+      last = e.name === 'AbortError' ? new Error('timed out') : e;
+      if (/HTTP 4\d\d/.test(last.message) && !/429/.test(last.message)) break;
+      await new Promise(r => setTimeout(r, 700 * 2 ** i));
+    } finally { clearTimeout(timer); }
+  }
+  throw last;
+}
+async function pool(items, n, fn) {
+  const out = new Array(items.length); let i = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length) { const k = i++; out[k] = await fn(items[k], k); } }));
+  return out;
+}
+
+/* ======================================================================
+   Synoptic / MesoWest
+   ====================================================================== */
+const SYN_VARS = 'precip_accum,precip_accum_ten_minute,precip_accum_one_hour,air_temp,relative_humidity,snow_depth,solar_radiation,wind_speed,wind_gust,weather_cond_code';
+const synCache = new Map();
+const synURL = (a, b) => `https://api.synopticdata.com/v2/stations/timeseries?stid=${SYN_IDS.join(",")}&start=${synStamp(a)}&end=${synStamp(b)}&vars=${SYN_VARS}&obtimezone=UTC&units=metric&token=${TOKEN}`;
+async function fetchSynChunk(a, b) {
+  const d = await fetchJSON(synURL(a, b));
+  const code = d && d.SUMMARY && d.SUMMARY.RESPONSE_CODE;
+  if (code === 2) return [];
+  if (code !== 1) throw new Error((d && d.SUMMARY && d.SUMMARY.RESPONSE_MESSAGE) || 'Synoptic error');
+  return d.STATION || [];
+}
+function mergeStations(chunks) {
+  const by = {};
+  for (const list of chunks) for (const S0 of list) {
+    const id = S0.STID, o = S0.OBSERVATIONS || {};
+    const rec = by[id] || (by[id] = { id, meta: S0, rows: new Map() });
+    const pick = {};
+    for (const k of Object.keys(o)) { const m = /^(.*)_set_(\d+)(d?)$/.exec(k); if (!m) continue; const name = m[3] ? m[1] + '_d' : m[1]; if (!pick[name] || +m[2] < pick[name].n) pick[name] = { k, n: +m[2] }; }
+    (o.date_time || []).forEach((ts, i) => {
+      const t = Date.parse(ts), row = rec.rows.get(t) || {};
+      for (const name in pick) { const v = o[pick[name].k][i]; if (v != null) row[name] = v; }
+      rec.rows.set(t, row);
+    });
+  }
+  const out = {};
+  for (const id in by) {
+    const ts = [...by[id].rows.keys()].sort((x, y) => x - y), v = {};
+    ts.forEach((t, i) => { const row = by[id].rows.get(t); for (const k in row) (v[k] || (v[k] = new Array(ts.length).fill(null)))[i] = row[k]; });
+    out[id] = { id, meta: by[id].meta, t: ts, v };
+  }
+  return out;
+}
+async function loadSynoptic(a, b) {
+  if (!TOKEN) throw new Error('no MesoWest token in keys.js');
+  const now = Date.now(), chunks = [];
+  for (let s = Math.floor(a / DAY) * DAY; s < b; s += 14 * DAY) chunks.push([Math.max(a, s), Math.min(b, s + 14 * DAY)]);
+  const lists = await pool(chunks, 3, async ([s, e]) => {
+    const key = `${s}-${e}`;
+    if (e < now - REFETCH_MS && synCache.has(key)) return synCache.get(key);
+    const v = await fetchSynChunk(s, e); synCache.set(key, v); return v;
+  });
+  return mergeStations(lists);
+}
+
+/* ======================================================================
+   Precipitation QC (pure, unit tested)
+   ====================================================================== */
+function processPrecip(st, mode) {
+  const out = { obs: [], incs: [], dropped: 0 };
+  if (!st || !mode) return out;
+  if (mode === 'ten' || mode === 'hour') {
+    const a = st.v[mode === 'ten' ? 'precip_accum_ten_minute' : 'precip_accum_one_hour'], span = mode === 'ten' ? 10 * MIN : HOUR;
+    if (!a) return out;
+    for (let i = 0; i < st.t.length; i++) {
+      const v = a[i]; if (v == null || !isFinite(v)) continue;
+      const t = st.t[i]; out.obs.push(t);
+      let mm = r3(v); const flags = [];
+      if (mm < 0) { flags.push('negative'); mm = 0; }
+      if (mm / (span / (10 * MIN)) > SUSPECT_MM_PER_10) flags.push('suspect');
+      if (mm > 0 || flags.length) out.incs.push({ t0: t - span, t, mm, flags, include: true });
+    }
+  } else if (mode === 'ratchet') {
+    // SNOTEL storage gauges: hourly, 0.1 in (2.54 mm) steps that swing with temperature, by up to 10 mm over a
+    // day at Independence Creek in October 2026. Water that fell stays in the gauge; a thermal swing comes back down.
+    // So the gauge is read through its lowest value over the next 24 h, and only new highs of that count.
+    // Hours with less than 24 h after them are provisional (flagged; processAll keeps them only if another source agrees).
+    // A drop of more than 25 mm is the October season reset.
+    out.partialMs = 70 * MIN;
+    const a = st.v.precip_accum; if (!a) return out;
+    const vals = []; for (let i = 0; i < st.t.length; i++) { const v = a[i]; if (v != null && isFinite(v) && v >= 0 && v < 20000) vals.push({ t: st.t[i], v }); }
+    const tEnd = vals.length ? vals[vals.length - 1].t : 0, env = new Array(vals.length);
+    for (let k = vals.length - 1, dq = []; k >= 0; k--) { // sliding minimum over [t, t + 24 h]
+      while (dq.length && vals[dq[dq.length - 1]].v >= vals[k].v) dq.pop();
+      dq.push(k); while (vals[dq[0]].t > vals[k].t + SNOTEL_LOOK) dq.shift();
+      env[k] = vals[dq[0]].v;
+    }
+    let hw = null, hwT = null;
+    for (let k = 0; k < vals.length; k++) {
+      const { t } = vals[k], v = env[k]; out.obs.push(t);
+      if (hw == null) { hw = v; hwT = t; continue; }
+      if (v < hw - 25) { out.incs.push({ t0: hwT, t, mm: 0, flags: ['reset'], include: true }); hw = v; hwT = t; continue; }
+      if (v > hw + 0.5) {
+        const flags = t - hwT > 2 * HOUR ? ['gap'] : [];
+        if (t + SNOTEL_LOOK > tEnd) flags.push('provisional');
+        if (v - hw < 3) flags.push('one step'); // a single 0.1 in step can be slow drift (10/11 to 10/13/2026: four sites, radar dry)
+        out.incs.push({ t0: hwT, t, mm: r3(v - hw), flags, include: true }); hw = v; hwT = t;
+      } else hwT = t;
+    }
+  } else {
+    const a = st.v.precip_accum; if (!a) return out;
+    let prev = null;
+    for (let i = 0; i < st.t.length; i++) {
+      const v = a[i]; if (v == null || !isFinite(v)) continue;
+      if (v < 0 || v > 20000) { out.dropped++; continue; }
+      const t = st.t[i]; out.obs.push(t);
+      if (prev) {
+        let d = r3(v - prev.v); const flags = [];
+        if (d < 0) { flags.push('reset'); d = 0; }
+        else if (d > 0) { if (t - prev.t > GAP_MS) flags.push('gap'); if (d / Math.max(1, (t - prev.t) / (10 * MIN)) > SUSPECT_MM_PER_10) flags.push('suspect'); }
+        if (d > 0 || flags.length) out.incs.push({ t0: prev.t, t, mm: d, flags, include: true });
+      }
+      prev = { t, v };
+    }
+  }
+  return out;
+}
+function corroborate(P, ids) {
+  for (const id of Object.keys(P)) for (const inc of P[id].incs) {
+    if (!inc.flags.includes('suspect')) continue;
+    const ok = ids.some(o => o !== id && P[o] && P[o].incs.some(j => j.mm > 0 && !j.flags.includes('suspect') && j.t >= inc.t0 - CORROB_MS && j.t0 <= inc.t + CORROB_MS));
+    inc.include = ok; inc.flags.push(ok ? 'corroborated' : 'excluded');
+  }
+}
+function sumPrecip(p, a, b) {
+  if (!p) return { mm: null, n: 0, last: null, status: 'nodata' };
+  let mm = 0, excluded = 0;
+  for (const inc of p.incs) if (inc.t > a && inc.t <= b) { if (inc.include) mm += inc.mm; else excluded += inc.mm; }
+  const i0 = bisectRight(p.obs, a), i1 = bisectRight(p.obs, b), n = i1 - i0, last = i1 > 0 ? p.obs[i1 - 1] : null;
+  return { mm: r3(mm), excluded: r3(excluded), n, last: n ? last : null, status: n === 0 ? 'nodata' : (last < b - (p.partialMs || PARTIAL_MS) ? 'partial' : 'ok') };
+}
+function flagCounts(p, a, b) {
+  const c = { reset: 0, gap: 0, excluded: 0, corroborated: 0, negative: 0 };
+  if (p) for (const inc of p.incs) if (inc.t > a && inc.t <= b) for (const f of inc.flags) if (f in c) c[f]++;
+  return c;
+}
+function lastTip(p, b) { if (!p) return null; for (let i = p.incs.length - 1; i >= 0; i--) { const x = p.incs[i]; if (x.t <= b && x.include && !x.melt && x.mm > 0) return x; } return null; }
+// Unheated tipping buckets hold snow and tip when it melts, often at midday in clear weather.
+// A tip from an unheated gauge counts for storm detection only if the gauge's own air temperature
+// stayed at or above 1 °C for the previous 24 h, so no snow can be sitting in the funnel. Over
+// water year 2026 this cut storms on days SNOTEL saw under 0.5 mm from 31 to 11 and missed none
+// of the 65 days with 5 mm or more. Melt tips stay in each gauge's own total.
+const MELT_LOOKBACK = 24 * HOUR;
+function markMelt(p, st) {
+  if (!p) return;
+  const T = st && st.v.air_temp;
+  for (const inc of p.incs) {
+    if (!(inc.mm > 0)) continue;
+    let n = 0, cold = false;
+    if (T) for (let j = bisectRight(st.t, inc.t - MELT_LOOKBACK); j < st.t.length && st.t[j] <= inc.t; j++) { const v = T[j]; if (v == null) continue; n++; if (v < RAIN_C) { cold = true; break; } }
+    inc.melt = cold || n < 12; // too few temperatures to rule snow out
+    if (inc.melt && !inc.flags.includes('melt?')) inc.flags.push('melt?');
+  }
+}
+function sumNoMelt(p, a, b) { let mm = 0; if (p) for (const inc of p.incs) if (inc.t > a && inc.t <= b && inc.include && !inc.melt) mm += inc.mm; return r3(mm); }
+
+/* ======================================================================
+   Snow depth QC
+   ====================================================================== */
+function qcSnowDepth(st) {
+  if (!st || SNOW_DEPTH_BLOCK.has(st.id) || !st.v.snow_depth) return [];
+  const ok = [];
+  st.t.forEach((t, i) => { const v = st.v.snow_depth[i]; if (v != null && isFinite(v) && v >= 0 && v <= 4000) ok.push({ t, raw: v }); });
+  // A nonzero depth that has not changed at all for 48 h is a stuck sensor (CLN read 1,371.6 mm on every report in Oct 2026).
+  const stuck = new Array(ok.length).fill(false);
+  for (let i = 0, j = 0; i < ok.length; i = j) {
+    j = i; while (j < ok.length && ok[j].raw === ok[i].raw) j++;
+    if (ok[i].raw > 50 && ok[j - 1].t - ok[i].t >= 48 * HOUR) {
+      for (let k = i; k < j; k++) stuck[k] = true;
+      // CLN also sent 1,397 mm between its stuck 1,371.6 run and its recovery on 10/12/2026
+      for (let k = j; k < ok.length && ok[k].t <= ok[j - 1].t + 3 * HOUR && Math.abs(ok[k].raw - ok[i].raw) <= 100; k++) stuck[k] = true;
+      for (let k = i - 1; k >= 0 && ok[k].t >= ok[i].t - 3 * HOUR && Math.abs(ok[k].raw - ok[i].raw) <= 100; k--) stuck[k] = true;
+    }
+  }
+  return ok.map((r, i) => {
+    if (stuck[i]) return { t: r.t, raw: r.raw, qc: null, flag: 'stuck sensor' };
+    let qc = r.raw, flag = '';
+    if (r.raw <= 150) {
+      for (let j = i; j >= 0 && ok[j].t >= r.t - 3 * HOUR; j--) if (ok[j].raw <= 5) { qc = 0; flag = 'bare-ground noise'; break; }
+      if (!flag) for (let j = i; j < ok.length && ok[j].t <= r.t + 3 * HOUR; j++) if (ok[j].raw <= 5) { qc = 0; flag = 'bare-ground noise'; break; }
+    }
+    if (!flag) { const w = ok.slice(Math.max(0, i - 2), i + 3).filter((x, k2) => !stuck[Math.max(0, i - 2) + k2]).map(x => x.raw).sort((x, y) => x - y), med = w[w.length >> 1]; if (w.length >= 3 && Math.abs(r.raw - med) > 100) { qc = med; flag = 'spike'; } }
+    return { t: r.t, raw: r.raw, qc, flag };
+  });
+}
+
+/* ======================================================================
+   Storms and flow response (pure)
+   ====================================================================== */
+function detectEvents(P, detIds, gapMs, minMm) {
+  const tips = [];
+  for (const id of detIds) if (P[id]) for (const inc of P[id].incs) if (inc.include && !inc.melt && inc.mm > 0) tips.push({ ...inc, id });
+  tips.sort((x, y) => x.t - y.t);
+  const groups = [];
+  for (const tp of tips) { const g = groups[groups.length - 1]; if (g && tp.t - g.lastT <= gapMs) { g.tips.push(tp); g.lastT = tp.t; } else groups.push({ tips: [tp], lastT: tp.t }); }
+  const events = [], minor = [];
+  for (const g of groups) {
+    const start = Math.min(...g.tips.map(x => x.t0)), end = Math.max(...g.tips.map(x => x.t)), det = {};
+    detIds.forEach(id => det[id] = 0);
+    let w = 0, wt = 0;
+    for (const tp of g.tips) { det[tp.id] = r3(det[tp.id] + tp.mm); w += tp.mm; wt += tp.mm * (tp.t0 + tp.t) / 2; }
+    (Math.max(...Object.values(det)) >= minMm - 1e-9 ? events : minor).push({ start, end, det, centroid: wt / w, nTips: g.tips.length });
+  }
+  return { events, minor };
+}
+function nearestValue(st, name, t, tol) {
+  if (!st || !st.v[name]) return null;
+  const i = bisectRight(st.t, t); let best = null, bd = Infinity;
+  for (let j = Math.max(0, i - 3); j < Math.min(st.t.length, i + 3); j++) { const v = st.v[name][j]; if (v == null) continue; const d = Math.abs(st.t[j] - t); if (d < bd) { bd = d; best = v; } }
+  return bd <= tol ? best : null;
+}
+function eventStationStats(ev, p, st) {
+  let tot = 0, peak = 0, peakT = null, wT = 0, wSum = 0, n = 0;
+  if (p) for (const inc of p.incs) {
+    if (!inc.include || inc.t <= ev.start || inc.t > ev.end || inc.mm <= 0) continue;
+    tot += inc.mm; n++;
+    if (inc.t - inc.t0 <= 10.5 * MIN && inc.mm > peak) { peak = inc.mm; peakT = inc.t; }
+    const T = nearestValue(st, 'air_temp', inc.t, 20 * MIN); if (T != null) { wT += T * inc.mm; wSum += inc.mm; }
+  }
+  let meanT = wSum ? wT / wSum : null, tBasis = wSum ? 'tips' : null;
+  if (meanT == null && st && st.v.air_temp) { let a = 0, k = 0; for (let j = bisectRight(st.t, ev.start); j < st.t.length && st.t[j] <= ev.end; j++) { const T = st.v.air_temp[j]; if (T != null) { a += T; k++; } } if (k) { meanT = a / k; tBasis = 'storm'; } }
+  const nObs = p ? bisectRight(p.obs, ev.end) - bisectRight(p.obs, ev.start) : 0;
+  return { tot: r3(tot), n, nObs, peak, peakT, meanT, tBasis, phase: meanT == null ? null : (meanT < 1 ? 'mixed/snow' : 'rain'), hasData: nObs > 0 };
+}
+function twMean(s, a, b) {
+  if (!s || !s.t.length || b <= a) return null;
+  let i = bisectRight(s.t, a) - 1, tCur = a, vCur = i >= 0 && s.t[i] >= a - 3 * HOUR ? s.v[i] : null;
+  if (vCur == null) { i = bisectRight(s.t, a); if (i >= s.t.length || s.t[i] > b) return null; tCur = s.t[i]; vCur = s.v[i]; }
+  let acc = 0, dur = 0;
+  for (let j = i + 1; j < s.t.length && s.t[j] <= b; j++) { acc += vCur * (s.t[j] - tCur); dur += s.t[j] - tCur; tCur = s.t[j]; vCur = s.v[j]; }
+  acc += vCur * (b - tCur); dur += b - tCur;
+  return dur > 0 ? acc / dur : vCur;
+}
+function seriesResolution(s) {
+  const u = [...new Set(s.v.map(v => Math.round(v * 1000) / 1000))].sort((x, y) => x - y);
+  let r = Infinity; for (let i = 1; i < u.length; i++) r = Math.min(r, u[i] - u[i - 1]);
+  return isFinite(r) ? Math.max(r, 0.01) : 0.01;
+}
+// A feed can send two or three different values within the same minute (the Salt Lake County gauges did, for Alta)
+// (9.55, 67.99 and 64.47 cfs at 10:43 PM on 10/8/2026); keep their median.
+function collapseDup(s) {
+  const t = [], v = [];
+  for (let i = 0; i < s.t.length;) {
+    let j = i; const g = []; while (j < s.t.length && s.t[j] - s.t[i] < MIN) g.push(s.v[j++]);
+    g.sort((x, y) => x - y); t.push(s.t[i]); v.push(g.length % 2 ? g[g.length >> 1] : (g[g.length / 2 - 1] + g[g.length / 2]) / 2); i = j;
+  }
+  return { ...s, t, v, dups: s.t.length - t.length };
+}
+function qcFlow(s0) {
+  const t = [], v = [], spikes = [];
+  if (!s0 || !s0.t.length) return { ...s0, t, v, spikes, res: 0.01 };
+  const s = collapseDup(s0);
+  const res = seriesResolution(s), n = s.t.length;
+  for (let i = 0; i < n; i++) {
+    const nb = []; for (let j = Math.max(0, i - 5); j <= Math.min(n - 1, i + 5); j++) if (j !== i) nb.push(s.v[j]); // 5 a side survives a small cluster of bad reports
+    nb.sort((x, y) => x - y);
+    const med = nb.length ? (nb.length % 2 ? nb[nb.length >> 1] : (nb[nb.length / 2 - 1] + nb[nb.length / 2]) / 2) : s.v[i];
+    const far = Math.abs(s.v[i] - med) > Math.max(0.5 * Math.abs(med), 5 * res);
+    if (far && i > 0 && i < n - 1) { spikes.push({ t: s.t[i], v: s.v[i], kind: 'spike' }); continue; }
+    if (far && i > 0 && i === n - 1 && nb.length >= 3) { spikes.push({ t: s.t[i], v: s.v[i], kind: 'unconfirmed' }); continue; }
+    t.push(s.t[i]); v.push(s.v[i]);
+  }
+  return { ...s, t, v, spikes, res };
+}
+// Stage at small mountain gauges is ice affected in cold months: ice backs water up and raises
+// stage with no change in flow (USGS). Provisional data carry no ice flag until USGS edits them, so
+// flow from November to March is marked "ice possible" after a below-freezing day at the field station.
+const ICE_IDS = ['SGHEN'];
+function icePossible(t) {
+  const m = tzParts(t).m; if (m > 3 && m < 11) return false;
+  if (!S.syn) return m === 12 || m <= 2;
+  for (const id of ICE_IDS) { const st = S.syn[id]; if (!st || !st.v.air_temp) continue; let a = 0, k = 0; for (let j = bisectRight(st.t, t - DAY); j < st.t.length && st.t[j] <= t; j++) { const x = st.v.air_temp[j]; if (x != null) { a += x; k++; } } if (k >= 12) return a / k < 0; }
+  return m === 12 || m <= 2;
+}
+const RESP_STEPS = 3, RESP_FRAC = 0.05, LAG_MAX_H = 12;
+function flowResponse(ev, nextStart, s) {
+  if (!s || !s.t.length) return null;
+  const base = twMean(s, ev.start - 6 * HOUR, ev.start);
+  let W = ev.end + 48 * HOUR; const flags = [];
+  const i0 = bisectRight(s.t, ev.start - 6 * HOUR) - 1;
+  if (i0 < 0 || s.t[i0] < ev.start - 9 * HOUR) flags.push('baseline under 6 h of data');
+  if (nextStart != null && nextStart < W) { W = nextStart; flags.push('cut by next storm'); }
+  const lastT = s.t[s.t.length - 1];
+  if (lastT < W) { W = lastT; flags.push(`48 h not over, data to ${fmtDT(lastT, { wd: false })}`); }
+  let peak = -Infinity, tpk = null;
+  for (let j = bisectRight(s.t, ev.start); j < s.t.length && s.t[j] <= W; j++) if (s.v[j] > peak) { peak = s.v[j]; tpk = s.t[j]; }
+  if (tpk == null || base == null) return { base, peak: tpk == null ? null : peak, tpk, dQ: null, lag: null, clear: false, flags: [...flags, base == null ? 'no baseline data' : 'no data after start'] };
+  const dQ = peak - base, res = s.res || seriesResolution(s);
+  // A clear rise must beat 3 gauge steps (the 0.32 cfs flicker is constant) and 5% of baseline.
+  let clear = dQ >= Math.max(RESP_STEPS * res, RESP_FRAC * base) - 1e-9;
+  const pre = twMean(s, ev.start - 30 * MIN, ev.start); // 30 min mean, so a single stage step does not count
+  if (clear && pre != null && pre - base > 2 * res + 1e-9) flags.push('already rising at start');
+  let lag = clear ? (tpk - ev.centroid) / HOUR : null;
+  if (lag != null && lag < 0) { flags.push('peak before centroid, from earlier precip'); lag = null; clear = false; }
+  if (lag != null && lag > LAG_MAX_H) { flags.push(`peak ${lag.toFixed(0)} h after the rain, likely not this storm`); lag = null; clear = false; }
+  if (s.ice !== false && icePossible(ev.start)) flags.push('ice possible: stage may not reflect flow');
+  return { base, peak, tpk, dQ, res, clear, lag, flags };
+}
+
+/* ======================================================================
+   Freezing level from station temperatures (hourly linear fit)
+   ====================================================================== */
+function freezingLevel(syn, a, b) {
+  const out = [];
+  for (let h = Math.ceil(a / HOUR) * HOUR; h <= b; h += HOUR) {
+    const pts = [];
+    for (const id of TEMP_IDS) {
+      const st = syn[id]; if (!st || !st.v.air_temp) continue;
+      let s = 0, k = 0; for (let j = bisectRight(st.t, h - HOUR); j < st.t.length && st.t[j] <= h; j++) { const T = st.v.air_temp[j]; if (T != null) { s += T; k++; } }
+      if (k) pts.push([STN[id].elev, s / k]);
+    }
+    if (pts.length < 4) continue;
+    const n = pts.length, mx = pts.reduce((x, p) => x + p[0], 0) / n, my = pts.reduce((x, p) => x + p[1], 0) / n;
+    let sxy = 0, sxx = 0, syy = 0; for (const [x, y] of pts) { sxy += (x - mx) * (y - my); sxx += (x - mx) ** 2; syy += (y - my) ** 2; }
+    const slope = sxy / sxx, r2 = syy ? (sxy * sxy) / (sxx * syy) : 0;
+    out.push({ t: h - HOUR / 2, fl: (slope >= 0 || r2 < 0.6) ? null : mx + (RAIN_C - my) / slope, slope, r2, n }); // elevation where air is RAIN_C
+  }
+  return out;
+}
+
+/* ======================================================================
+   Weighing gauge (Geonor at the field station, from UC NRS Dendra)
+   ====================================================================== */
+// Dendra still carries the raw vibrating wire frequency (Hz). From 10/2017 to 7/2020 it also carried bucket
+// content in mm, which was exactly this quadratic of frequency (135,169 pairs, residual 0.09 mm): the logger's own calibration.
+const GEONOR_C = [9.09476239e-05, -2.88771708e-02, -73.9514108];
+const geonorMm = f => (f == null || !isFinite(f) || f < 500 || f > 3500) ? null : GEONOR_C[0] * f * f + GEONOR_C[1] * f + GEONOR_C[2];
+const GEO_UP = 0.25, GEO_DOWN = 1.0, GEO_DOWN_N = 6, GEO_DRAIN = 15, GEO_SPREAD = 8, GEO_RUN = 12, GEO_BUF = 18;
+// rows: [{ t, f }] sorted, 10 min apart. Returns the same shape as processPrecip, plus content and fault flags.
+function processGeonor(rows) {
+  const out = { obs: [], incs: [], dropped: 0, content: [], resets: [], bad: 0, partialMs: PARTIAL_MS };
+  const n = rows.length, c = rows.map(r => geonorMm(r.f)), bad = new Array(n).fill(false), err = new Array(n).fill(false);
+  for (let i = 0; i < n; i++) {
+    if (c[i] == null) { bad[i] = true; continue; }
+    const w = []; for (let j = Math.max(0, i - 3); j <= Math.min(n - 1, i + 3); j++) if (c[j] != null) w.push(c[j]);
+    if (w.length < 4) { bad[i] = true; continue; }
+    let up = 0, dn = 0; for (let k = 1; k < w.length; k++) { const d = w[k] - w[k - 1]; if (d > 0) up += d; else dn -= d; }
+    // A fault swings both ways by several mm within 30 min; a real storm only climbs, and a drain only falls.
+    if (Math.max(...w) - Math.min(...w) > GEO_SPREAD && Math.min(up, dn) > GEO_SPREAD / 2) { bad[i] = true; err[i] = true; }
+  }
+  const bad2 = bad.slice(); // a fault lasting 2 h or more also drops the 3 h either side
+  for (let i = 0; i < n;) {
+    if (!err[i]) { i++; continue; }
+    let j = i, k = 0; while (j < n && (err[j] || c[j] == null)) { if (err[j]) k++; j++; }
+    if (k >= GEO_RUN) for (let q = Math.max(0, i - GEO_BUF); q < Math.min(n, j + GEO_BUF); q++) bad2[q] = true;
+    i = j;
+  }
+  let hist = [], base = null, baseT = null, below = 0;
+  for (let i = 0; i < n; i++) {
+    const t = rows[i].t;
+    if (bad2[i]) { out.bad++; hist = []; continue; }
+    out.obs.push(t); out.content.push({ t, v: c[i] });
+    hist.push(c[i]); if (hist.length > 7) hist.shift();
+    if (hist.length < 4) continue;
+    const s = hist.slice().sort((x, y) => x - y), m = s.length % 2 ? s[s.length >> 1] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
+    if (base == null) { base = m; baseT = t; continue; }
+    if (m > base + GEO_UP) {
+      const mm = r3(m - base), flags = [];
+      if (t - baseT > GAP_MS) flags.push('gap');
+      if (mm / Math.max(1, (t - baseT) / (10 * MIN)) > SUSPECT_MM_PER_10) flags.push('suspect');
+      out.incs.push({ t0: baseT, t, mm, flags, include: true }); base = m; baseT = t; below = 0;
+    } else if (m < base - GEO_DOWN) {
+      below++;
+      if (below >= GEO_DOWN_N || m < base - GEO_DRAIN) { out.resets.push({ t, from: base, to: m }); base = m; baseT = t; below = 0; }
+    } else { below = 0; baseT = t; }
+  }
+  return out;
+}
+async function loadDendra(a, b) {
+  const rows = []; let t = new Date(a).toISOString();
+  const end = new Date(b).toISOString();
+  for (let k = 0; k < 80; k++) {
+    const q = new URLSearchParams({ datastream_id: GEONOR_DS, 'time[$gt]': t, 'time[$lte]': end, '$limit': '2000', '$sort[time]': '1' });
+    const d = await fetchJSON(`${DENDRA}/datapoints?${q}`);
+    for (const p of d.data || []) rows.push({ t: Date.parse(p.t), f: p.v });
+    if (!d.data || d.data.length < 2000) break;
+    t = d.data[d.data.length - 1].t;
+  }
+  return rows;
+}
+
+/* ======================================================================
+   Radar now: IEM NEXRAD mosaic tiles, decoded in the browser
+   ====================================================================== */
+const PAL_HEX = '00000085718f85728f86738d87758b87768b887789897987897a878a7b858b7d848b7e848c7f828d81808d82808e837e8f847c8f857c90877b918879918979928b77938d759691539894579b975b9d9a60a09d64a3a068a5a36da8a671aaa976adac7ab0af7eb2b283b7b88cbabb90bdbe94bfc199c2c49dc4c7a2c7caa6cacdaaccd0afd2d4b4cfd2b4c9ccb4c6c9b4c3c7b4c0c4b4bdc1b4b9beb4b6bbb4b3b9b4b0b6b4adb3b4aab0b4a4abb4a0a8b49da5b49aa2b497a0b4949db4919ab4949bb59098b48c95b38892b2808cb07c89af7886ae7483ac7080ab6c7daa6779a96376a85f73a75b70a6576da44f67a24b64a14761a0435e9f415b9e4361a24568a6486faa4a76ae4d7db24f84b6518bbb5699c3599fc75ba6cb5eadcf60b4d462bbd865c2dc67c9e06ad0e46fd6e868d6d759d6b352d6a24bd69043d67e3cd66d35d65b11d51811d11710cd1710c81610c4160fbc150fb7140eb3140eaf130eab130da6120da2120d9e110c99110c95100c91100b880f0b840e0a800e0a7c0d0a770d09730c096f0c096b0b08660b08620a095e09327308467d085b88076f9207849d0698a806adb205c1bd05d6c704ead204ffe200ffd800ffd300ffce00ffc900ffc400ffc000ffbb00ffb600ffb100ffac00ffa700ffa200ff9900ff9400ff8f00ff8a00ff8500ff8000ff0000f80000f10000ea0000e30000d50000cd0000c60000bf0000b80000b10000aa0000a300009b00009400008d00007f0000780000710000fffffffff5ffffeaffffdfffffd4ffffc9ffffbeffffb3ffff9dffff92ffff75fffc6bfdf960faf656f7f34bf4f040f1ed36efea2bece720e9e10be3b200ffac00fca400f79b00f49300ef8800ea8300e87900e27200dd6900db05ecf005ebf005eaf005dde005dce005dbe005cdd005ccd004bdc004bcc004bbc004aeb004adb0049ea0049da0049ca0038e90038d90038c90037e80037d80036f70036e70036d70025f60025e60024f50024e50024d50023f40023e40023d40013030012f30012020011f20011e203a67b53a66b53a65b53a64b53a63b53a62b5';
+const PAL = (() => { const m = new Map(), arr = []; for (let i = 0; i < 256; i++) { const c = parseInt(PAL_HEX.substr(i * 6, 6), 16); arr.push([c >> 16, (c >> 8) & 255, c & 255]); if (i && !m.has(c)) m.set(c, i); } return { m, arr }; })();
+const nearIdx = new Map();
+function rgbToIdx(r, g, b) {
+  const c = (r << 16) | (g << 8) | b, hit = PAL.m.get(c); if (hit != null) return hit;
+  if (nearIdx.has(c)) return nearIdx.get(c);
+  let best = 0, bd = Infinity; for (let i = 1; i < 256; i++) { const p = PAL.arr[i], d = (p[0] - r) ** 2 + (p[1] - g) ** 2 + (p[2] - b) ** 2; if (d < bd) { bd = d; best = i; } }
+  nearIdx.set(c, bd < 300 ? best : 0); return nearIdx.get(c);
+}
+const idxToDbz = i => i > 0 ? i * 0.5 - 32.5 : null;
+const RAIN_C = 1; // rain/snow call, also used for storms
+const RADAR_FLOOR = 20; // dBZ: weaker echo is not called precipitation in the "radar now" tile
+function tileXY(lat, lon, z) { const n = 2 ** z, x = (lon + 180) / 360 * n, la = lat * Math.PI / 180; return [x, (1 - Math.log(Math.tan(la) + 1 / Math.cos(la)) / Math.PI) / 2 * n]; }
+function pixLatLon(tx, ty, px, py, z) { const n = 2 ** z, x = tx + (px + 0.5) / 256, y = ty + (py + 0.5) / 256; return [Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI, x / n * 360 - 180]; }
+function inPoly(lon, lat, ring) { let ins = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [xi, yi] = ring[i], [xj, yj] = ring[j]; if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) ins = !ins; } return ins; }
+const radarStamp = ms => new Date(ms).toISOString().replace(/[-:T]/g, '').slice(0, 12);
+const radarTileURL = (ms, z, x, y) => `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::USCOMP-N0Q-${radarStamp(ms)}/${z}/${x}/${y}.png`;
+function loadImg(url) { return new Promise((res, rej) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = () => rej(new Error('tile')); im.src = url; }); }
+const kmFrom = (p, q) => Math.hypot((q.lat - p.lat) * 111, (q.lon - p.lon) * 86);
+function bearing(p, q) { const ang = (Math.atan2((q.lon - p.lon) * 86, (q.lat - p.lat) * 111) * 180 / Math.PI + 360) % 360; return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(ang / 45) % 8]; }
+const RNZ = 8, RADIUS_KM = 60;
+// Newest mosaic frame: strongest echo over the basin, and the nearest echo of 30 dBZ or more within 60 km.
+async function radarNow() {
+  const ctx = (() => { const c = document.createElement('canvas'); c.width = c.height = 256; return c.getContext('2d', { willReadFrequently: true }); })();
+  const tiles = new Set();
+  for (const dl of [-0.6, 0.6]) for (const dn of [-0.75, 0.75]) { const [x, y] = tileXY(CENTER.lat + dl, CENTER.lon + dn, RNZ); tiles.add(`${Math.floor(x)},${Math.floor(y)}`); }
+  let t = Math.floor((Date.now() - 8 * MIN) / (5 * MIN)) * 5 * MIN;
+  for (let k = 0; k < 4; k++, t -= 5 * MIN) {
+    try {
+      let basin = null, best = null, near = null;
+      for (const key of tiles) {
+        const [tx, ty] = key.split(',').map(Number), im = await loadImg(radarTileURL(t, RNZ, tx, ty));
+        ctx.clearRect(0, 0, 256, 256); ctx.drawImage(im, 0, 0); const px = ctx.getImageData(0, 0, 256, 256).data;
+        for (let i = 0; i < 65536; i++) {
+          if (px[i * 4 + 3] < 128) continue;
+          const dbz = idxToDbz(rgbToIdx(px[i * 4], px[i * 4 + 1], px[i * 4 + 2])); if (dbz == null || dbz < RADAR_FLOOR) continue;
+          const [la, lo] = pixLatLon(tx, ty, i % 256, Math.floor(i / 256), RNZ), q = { lat: la, lon: lo }, d = kmFrom(CENTER, q); if (d > RADIUS_KM) continue;
+          if (!best || dbz > best.dbz) best = { dbz, d, ...q };
+          if (dbz >= 30 && (!near || d < near.d)) near = { dbz, d, ...q };
+          if ((inPoly(lo, la, BASIN) || d <= 3) && (basin == null || dbz > basin)) basin = dbz; // z8 pixels are ~470 m, so include 3 km of edge
+        }
+      }
+      return { t, basin, best, near };
+    } catch (e) { /* frame not ready yet: try 5 min earlier */ }
+  }
+  throw new Error('no recent radar frame');
+}
+
+/* ======================================================================
+   Radar amounts at the basin center (IEM IEMRE: Stage IV hourly, MRMS daily)
+   ====================================================================== */
+const IEM = 'https://mesonet.agron.iastate.edu/iemre';
+const ymd = ms => new Date(ms).toISOString().slice(0, 10);
+const iemCache = new Map();
+async function loadIEM(a, b) {
+  const out = { hourly: b - a <= 8 * DAY + HOUR, rows: [] }, rows = [];
+  if (out.hourly) {
+    const days = []; for (let t = Date.parse(ymd(a - DAY) + 'T00:00:00Z'); t <= b + DAY; t += DAY) days.push(ymd(t));
+    const got = await pool(days, 4, async d => {
+      const url = `${IEM}/hourly/${d}/${CENTER.lat}/${CENTER.lon}/json`, old = Date.parse(d + 'T00:00:00Z') < Date.now() - 3 * DAY;
+      if (old && iemCache.has(url)) return iemCache.get(url);
+      const x = await fetchJSON(url, { tries: 2, timeout: 30000 }).catch(() => null); if (x && old) iemCache.set(url, x); return x;
+    });
+    if (!got.some(Boolean)) throw new Error('not reachable');
+    for (const d of got) if (d) for (const r of d.data) { const t = Date.parse(r.valid_utc); if (t > a && t <= b + HOUR && r.hourly_precip_in != null) rows.push({ t0: t - HOUR, t, mm: r.hourly_precip_in * 25.4 }); }
+  } else {
+    const d = await fetchJSON(`${IEM}/multiday/${ymd(a - DAY)}/${ymd(b)}/${CENTER.lat}/${CENTER.lon}/json`, { timeout: 60000 });
+    for (const r of d.data) { const t0 = localToUtc(...r.date.split('-').map(Number)), t = t0 + DAY; if (t > a && t0 < b && r.mrms_precip_in != null) rows.push({ t0, t, mm: r.mrms_precip_in * 25.4 }); }
+  }
+  const seen = new Set(); out.rows = rows.filter(r => !seen.has(r.t) && seen.add(r.t)).sort((x, y) => x.t - y.t);
+  out.last = out.rows.length ? out.rows[out.rows.length - 1].t : null;
+  return out;
+}
+// Radar amount over [a, b]: whole hours (or days) that fall inside, so short storms round outward to the hour.
+function radarAmount(a, b) {
+  if (!S.iem || !S.iem.rows.length) return null;
+  const rows = S.iem.rows.filter(r => r.t > a && r.t0 < b);
+  if (!rows.length) return null;
+  return { mm: rows.reduce((s, r) => s + r.mm, 0), partial: S.iem.last < b, src: S.iem.hourly ? 'Stage IV' : 'MRMS' };
+}
+
+/* ======================================================================
+   USGS, SNOTEL, NWS
+   ====================================================================== */
+async function loadUSGS(a, b) {
+  // Requests older than ~120 d are redirected to the archive host and browsers get an empty body.
+  const host = a < Date.now() - 110 * DAY ? 'nwis.waterservices.usgs.gov' : 'waterservices.usgs.gov';
+  const d = await fetchJSON(`https://${host}/nwis/iv/?sites=${USGS_SITE}&parameterCd=00060,00010,00065&startDT=${isoMin(a)}&endDT=${isoMin(b)}&format=json&siteStatus=all`);
+  const out = { q: { t: [], v: [] }, wt: { t: [], v: [] }, gh: { t: [], v: [] } };
+  for (const ts of d.value.timeSeries || []) {
+    const code = ts.variable.variableCode[0].value, nd = ts.variable.noDataValue, key = code === '00060' ? 'q' : code === '00010' ? 'wt' : code === '00065' ? 'gh' : null;
+    if (!key) continue;
+    for (const p of ts.values[0].value) { const x = +p.value; if (isFinite(x) && x !== nd && (key === 'wt' || x >= 0)) { out[key].t.push(Date.parse(p.dateTime)); out[key].v.push(x); } }
+  }
+  out.q = qcFlow({ ...out.q, api: 'NWIS IV' });
+  return out;
+}
+async function loadSnotelHourly(a, b) {
+  const f = ms => new Date(ms - 8 * HOUR).toISOString().slice(0, 13).replace('T', ' ') + ':00';
+  const d = await fetchJSON(`${AWDB}/data?stationTriplets=${SNOTEL.map(s => s.trip).join(',')}&elements=SNWD,WTEQ&duration=HOURLY&beginDate=${encodeURIComponent(f(a))}&endDate=${encodeURIComponent(f(b))}`, { timeout: 60000 }), out = {}, swe = {};
+  for (const s of d) for (const e of s.data || []) {
+    const rows = (e.values || []).filter(x => x.value != null && x.value >= 0 && x.value < 400).map(x => ({ t: Date.parse(x.date.replace(' ', 'T') + ':00Z') + 8 * HOUR, v: x.value }));
+    if (e.stationElement.elementCode === 'SNWD') out[s.stationTriplet] = rows; else swe[s.stationTriplet] = rows;
+  }
+  out.swe = swe; // hourly SWE, used to bring the daily season charts up to the latest hour
+  return out;
+}
+async function loadSnotel(a, b) {
+  const d0 = localDate(Math.min(a, waterYearStart(b)) - DAY), d1 = localDate(b);
+  const url = `${AWDB}/data?stationTriplets=${SNOTEL.map(s => s.trip).join(',')}&elements=WTEQ,SNWD,PREC,PRCP,TOBS&duration=DAILY&beginDate=${d0}&endDate=${d1}&centralTendencyType=MEDIAN`;
+  const d = await fetchJSON(url, { timeout: 60000 }), out = {};
+  for (const s of d) {
+    const rec = out[s.stationTriplet] = {};
+    for (const e of s.data || []) { if (e.stationElement.elementCode === 'WTEQ' && e.timingCentralTendencies) rec.timing = e.timingCentralTendencies; rec[e.stationElement.elementCode] = (e.values || []).map(x => { const [y, m, dd] = x.date.split('-').map(Number); return { date: x.date, t: Date.UTC(y, m - 1, dd + 1, 8), v: x.value, med: x.median, qc: x.qcFlag || '' }; }); }
+  }
+  return out;
+}
+function isoDur(s) { const m = /P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?)?/.exec(s || ''); return m ? ((+m[1] || 0) * 24 + (+m[2] || 0)) * HOUR + (+m[3] || 0) * MIN : HOUR; }
+function gridSeries(p, k) { const g = p[k]; if (!g) return []; return g.values.map(x => { const [s, d] = x.validTime.split('/'), a = Date.parse(s); return { a, b: a + isoDur(d), v: x.value }; }).filter(x => x.v != null); }
+async function loadNWS() {
+  let d;
+  try { d = await fetchJSON(NWS_GRID, { tries: 3, timeout: 30000 }); }
+  catch (e) { const pt = await fetchJSON(`https://api.weather.gov/points/${CENTER.lat},${CENTER.lon}`); d = await fetchJSON(pt.properties.forecastGridData); }
+  const P = d.properties, M_TO_FT = 3.28084;
+  return { updated: Date.parse(P.updateTime), pop: gridSeries(P, 'probabilityOfPrecipitation'), qpf: gridSeries(P, 'quantitativePrecipitation'),
+    snowLevel: gridSeries(P, 'snowLevel').map(x => ({ ...x, v: x.v * M_TO_FT })), temp: gridSeries(P, 'temperature'), snow: gridSeries(P, 'snowfallAmount') };
+}
+const overlap = (x, a, b) => Math.max(0, Math.min(x.b, b) - Math.max(x.a, a));
+function maxIn(series, a, b) { let m = null, at = null; for (const x of series) if (overlap(x, a, b) > 0 && (m == null || x.v > m)) { m = x.v; at = Math.max(x.a, a); } return { v: m, at }; }
+function sumIn(series, a, b) { let s = 0, end = null; for (const x of series) { const o = overlap(x, a, b); if (o > 0) { s += x.v * o / (x.b - x.a); end = Math.max(end || 0, Math.min(x.b, b)); } } return { mm: s, end }; }
+function monthsBetween(a, b) { const out = []; const d = new Date(a); let y = d.getUTCFullYear(), m = d.getUTCMonth() + 1; const e = new Date(b), ey = e.getUTCFullYear(), em = e.getUTCMonth() + 1; while (y < ey || (y === ey && m <= em)) { out.push(`${y}-${String(m).padStart(2, '0')}`); m++; if (m > 12) { m = 1; y++; } } return out; }
+
+/* ======================================================================
+   State
+   ====================================================================== */
+const S = {
+  win: { preset: '72h', a: 0, b: 0 }, det: ['SGHP', 'ILKC1', 'ICPC1'], gapH: 3, minMm: 1.0,
+  syn: null, geo: null, geoRows: null, P: {}, snowH: null, usgs: null, snotel: null, iem: null, now: null, nws: null,
+  status: {}, events: [], minor: [], fl: [], hoverX: null, loadedAt: null, radarT: null, radarTimes: [], view: null, fview: null, drag: null, selStorm: null,
+};
+function windowFromPreset(p) { const now = Date.now(), spans = { '24h': DAY, '72h': 3 * DAY, '7d': 7 * DAY, '30d': 30 * DAY }; return p === 'wy' ? { a: waterYearStart(now), b: now } : { a: now - (spans[p] || 3 * DAY), b: now }; }
+function readHash() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('s') && h.get('e')) {
+    const p = x => { const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})$/.exec(x); return m ? localToUtc(+m[1], +m[2], +m[3], +m[4], +m[5]) : null; };
+    const a = p(h.get('s')), b = p(h.get('e')); if (a && b && b > a) { S.win = { preset: 'custom', a, b }; return; }
+  }
+  const w = h.get('w') || '72h'; S.win = { preset: w, ...windowFromPreset(w) };
+}
+function writeHash() { const st = x => localInput(x).replace(/[-T:]/g, ''); history.replaceState(null, '', location.pathname + location.search + '#' + (S.win.preset === 'custom' ? `s=${st(S.win.a)}&e=${st(S.win.b)}` : `w=${S.win.preset}`)); }
+const SRC = { syn: ['MesoWest', 'https://mesowest.utah.edu/'], geo: ['Field station gauge', DENDRA_LINK], usgs: ['USGS', USGS_LINK], snotel: ['SNOTEL', 'https://nwcc-apps.sc.egov.usda.gov/imap/'], iem: ['Radar amounts', 'https://mesonet.agron.iastate.edu/iemre/'], now: ['Radar now', 'https://mesonet.agron.iastate.edu/docs/nexrad_mosaic/'], nws: ['NWS forecast', 'https://forecast.weather.gov/MapClick.php?lat=39.432&lon=-120.272'] };
+function setStatus(k, cls, msg) { S.status[k] = { cls, msg }; document.getElementById('status').innerHTML = Object.entries(S.status).map(([k2, s]) => `<span class="${s.cls}"><a href="${SRC[k2][1]}" target="_blank" rel="noopener">${SRC[k2][0]}</a> ${s.msg}</span>`).join(' '); }
+
+/* ======================================================================
+   Charts: paper style, stacked panels on one time axis
+   ====================================================================== */
+Chart.defaults.color = INK2;
+Chart.defaults.font.family = 'Arial, "Helvetica Neue", Helvetica, sans-serif';
+Chart.defaults.font.weight = '600';
+Chart.defaults.font.size = 10.5;
+const NARROW = window.innerWidth < 600, AXIS_W = NARROW ? 54 : 66, Y2_W = 46, RIGHT_PAD = 112; // phones: see timeChart
+// Tooltip lookup: every visible series' value at the time under the finger or cursor. Chart.js's
+// 'nearest' mode lists only the series whose points sit closest in time, so gauges that report at
+// different moments dropped in and out at random. Stepped series (running totals, flow, snow) show
+// the value in effect (last point at or before that time); others show the nearest point unless it is
+// far away compared with the series' usual spacing (a data gap); bars only within their own hour.
+Chart.Interaction.modes.atTime = (chart, e) => {
+  const sx = chart.scales.x; if (!sx) return [];
+  const pos = Chart.helpers.getRelativePosition(e, chart), ca = chart.chartArea;
+  if (pos.x < ca.left || pos.x > ca.right) return [];
+  chart._atTime = sx.getValueForPixel(pos.x);
+  const hourPx = Math.abs(sx.getPixelForValue(chart._atTime + HOUR) - sx.getPixelForValue(chart._atTime));
+  const items = [];
+  chart.data.datasets.forEach((ds, di) => {
+    if (!chart.isDatasetVisible(di)) return;
+    const meta = chart.getDatasetMeta(di), els = meta.data; if (!els || !els.length) return;
+    let lo = 0, hi = els.length; while (lo < hi) { const m = (lo + hi) >> 1; if (els[m].x <= pos.x) lo = m + 1; else hi = m; }
+    const iL = lo - 1, iR = lo < els.length ? lo : -1, isBar = meta.type === 'bar';
+    let idx;
+    if (((ds.stepped && ds.stepped !== 'middle') || ds.hold) && !isBar) idx = iL; // hold: drawn as flat forecast periods // 'middle' steps are centered on their point, so use the nearest
+    else {
+      if (meta._medDx == null) { const dx = []; for (let k = 1; k < els.length && dx.length < 400; k++) dx.push(els[k].x - els[k - 1].x); dx.sort((p, q) => p - q); meta._medDx = dx.length ? dx[dx.length >> 1] : 0; }
+      const dl = iL >= 0 ? pos.x - els[iL].x : Infinity, dr = iR >= 0 ? els[iR].x - pos.x : Infinity;
+      idx = dl <= dr ? iL : iR;
+      const lim = isBar ? Math.max(hourPx / 2, 4) : ds.showLine === false ? Math.max(hourPx / 2, 6) : Math.max(3 * hourPx, 1.5 * meta._medDx, 10);
+      if (Math.min(dl, dr) > lim) idx = -1;
+    }
+    if (idx == null || idx < 0 || !els[idx] || els[idx].skip) return;
+    const pv = meta._parsed && meta._parsed[idx]; if (pv && (pv.y == null || Number.isNaN(pv.y))) return;
+    items.push({ element: els[idx], datasetIndex: di, index: idx });
+  });
+  return items;
+};
+Chart.register({
+  id: 'paper',
+  beforeDatasetsDraw(chart, _a, o) {
+    const { ctx, chartArea: ca, scales: { x } } = chart; if (!x || !o) return;
+    ctx.save(); ctx.beginPath(); ctx.rect(ca.left, ca.top, ca.right - ca.left, ca.bottom - ca.top); ctx.clip();
+    const placed = [];
+    const lab = (txt, x0, color) => { ctx.font = '800 11px Arial, Helvetica'; const w = ctx.measureText(txt).width, lx = Math.min(ca.right - w - 2, Math.max(ca.left + 1, x0 + 1)); let row = 0; while (placed.some(p => p.row === row && lx < p.x1 + 6 && lx + w > p.x0 - 6)) row++; placed.push({ x0: lx, x1: lx + w, row }); ctx.fillStyle = color; ctx.fillText(txt, lx, ca.top + 10 + row * 12); };
+    for (const e of o.events || []) { const x0 = x.getPixelForValue(e.start), x1 = x.getPixelForValue(e.end); ctx.fillStyle = 'rgba(0,0,0,0.085)'; ctx.fillRect(x0, ca.top, Math.max(2, x1 - x0), ca.bottom - ca.top); }
+    for (const c of o.cells || []) { const x0 = x.getPixelForValue(c.start), x1 = x.getPixelForValue(c.end); ctx.fillStyle = 'rgba(213,94,0,0.14)'; ctx.fillRect(x0, ca.top, Math.max(2, x1 - x0), ca.bottom - ca.top); }
+    if (o.labels) { for (const e of o.events || []) if (e.label) lab(e.label, x.getPixelForValue(e.start), INK); for (const c of o.cells || []) lab(c.label, x.getPixelForValue(c.start), RADAR); }
+    for (const h of o.hlines || []) { const y = chart.scales.y.getPixelForValue(h.y); if (y < ca.top || y > ca.bottom) continue; ctx.strokeStyle = h.color || INK3; ctx.setLineDash(h.dash || [3, 3]); ctx.lineWidth = 0.75; ctx.beginPath(); ctx.moveTo(ca.left, y); ctx.lineTo(ca.right, y); ctx.stroke(); ctx.setLineDash([]); if (h.label) { ctx.fillStyle = h.color || INK3; ctx.font = '700 10px Arial, Helvetica'; ctx.fillText(h.label, ca.left + 3, y - 3); } }
+    ctx.restore();
+  },
+  afterDatasetsDraw(chart, _a, o) {
+    const { ctx, chartArea: ca, scales: { x } } = chart; if (!x) return;
+    if (o && o.endLabels) {
+      const items = [];
+      chart.data.datasets.forEach((ds, i) => { if (!chart.isDatasetVisible(i) || !ds.endLabel || !ds.data.length) return; const last = ds.data[ds.data.length - 1]; if (last.y == null) return; items.push({ y: chart.scales.y.getPixelForValue(last.y), text: ds.endLabel, color: ds.labelColor || ds.borderColor }); });
+      items.sort((p, q) => p.y - q.y); for (let i = 1; i < items.length; i++) if (items[i].y - items[i - 1].y < 11) items[i].y = items[i - 1].y + 11;
+      for (let i = items.length - 1, lim = ca.bottom + 6; i >= 0; i--) { if (items[i].y > lim) items[i].y = lim; lim = items[i].y - 11; } // keep the stack inside: push up from the bottom
+      ctx.save(); ctx.font = '700 10.5px Arial, Helvetica'; ctx.textBaseline = 'middle';
+      const lx = (chart.scales.y2 ? chart.scales.y2.right : ca.right) + 4;
+      for (const it of items) { ctx.fillStyle = it.color === '#ffffff' ? INK : it.color; ctx.fillText(it.text, lx, it.y); }
+      ctx.restore();
+    }
+    if (o && o.sync && S.drag && S.drag.x1 != null) { const x0 = x.getPixelForValue(S.drag.v0), x1 = x.getPixelForValue(S.drag.v1); ctx.save(); ctx.fillStyle = 'rgba(28,92,171,0.12)'; ctx.fillRect(Math.min(x0, x1), ca.top, Math.max(2, Math.abs(x1 - x0)), ca.bottom - ca.top); ctx.restore(); }
+    if (o && o.sync && S.hoverX != null && S.hoverX >= x.min && S.hoverX <= x.max) { const px = x.getPixelForValue(S.hoverX); ctx.save(); ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 0.75; ctx.beginPath(); ctx.moveTo(px, ca.top); ctx.lineTo(px, ca.bottom); ctx.stroke(); ctx.restore(); }
+  },
+});
+// Ticks: bold dates at local midnight with a faint day line; clock times in between,
+// as many as fit (pixels per day decides 3 h, 6 h, 12 h, or dates only).
+function tickPlan(span, px) {
+  const pxDay = px / Math.max(span / DAY, 1e-6);
+  if (span > 70 * DAY) return { month: true };
+  if (pxDay >= 330) return { step: 3, every: 3 };
+  if (pxDay >= 170) return { step: 3, every: 6 };
+  if (pxDay >= 95) return { step: 6, every: 12 };
+  if (pxDay >= 40) return { step: 12, every: 0 };
+  return { step: 24, every: 0, dateEvery: Math.ceil(60 / pxDay) };
+}
+function timeTicks(min, max, px) {
+  const span = max - min, plan = tickPlan(span, px), out = [];
+  if (plan.month) { let p = tzParts(min), y = p.y, m = p.m; for (let k = 0; k < 24; k++) { const t = localToUtc(y, m, 1); if (t > max) break; if (t >= min) out.push({ value: t, major: true }); m++; if (m > 12) { m = 1; y++; } } return out; }
+  const p0 = tzParts(min - DAY);
+  let day = 0;
+  for (let k = 0; k < 1200; k++) {
+    const t = localToUtc(p0.y, p0.m, p0.d + Math.floor(k * plan.step / 24), (k * plan.step) % 24);
+    if (t > max) break; if (t < min) continue;
+    const h = tzParts(t).h, major = h === 0;
+    let show = major ? (!plan.dateEvery || day++ % plan.dateEvery === 0) : (plan.every > 0 && h % plan.every === 0);
+    out.push({ value: t, major, show });
+  }
+  return out;
+}
+function tickLabel(v, span, tick) {
+  const p = tzParts(v);
+  if (span > 70 * DAY) return new Date(Date.UTC(p.y, p.m - 1, 15)).toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+  if (!tick || !tick.show) return '';
+  if (tick.major) return `${p.wd} ${p.m}/${p.d}`;
+  return `${(p.h % 12) || 12} ${p.h < 12 ? 'AM' : 'PM'}`;
+}
+const axisStyle = () => ({ border: { display: true, color: INK, width: 1.25 }, grid: { display: true, drawOnChartArea: false, drawTicks: true, tickLength: 5, color: INK, lineWidth: 1.25 } });
+const timeGrid = () => ({ display: true, drawOnChartArea: true, drawTicks: true, tickLength: 5, tickColor: INK, lineWidth: c => c.tick && c.tick.major ? 1 : 1.25, color: c => c.tick && c.tick.major ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0)' });
+const charts = {};
+
+// Tap or click outside a chart closes its value readout and the hover line; tapping another chart
+// closes the readouts on all the others.
+document.addEventListener('pointerdown', e => {
+  const hit = e.target && e.target.closest ? e.target.closest('.cbox canvas') : null;
+  for (const c of Object.values(charts)) { if (c.canvas !== hit && c.tooltip && c.tooltip.getActiveElements().length) { c.tooltip.setActiveElements([], { x: 0, y: 0 }); c.setActiveElements([]); c.update('none'); } }
+  if (!hit && S.hoverX != null) { S.hoverX = null; redrawSynced(null); }
+}, true);
+function redrawSynced(except) { for (const c of Object.values(charts)) if (c !== except && c.options.plugins.paper && c.options.plugins.paper.sync) c.draw(); }
+function timeChart(id, datasets, { y = {}, showX = false, endLabels = false, legend = false, paper = {}, type = 'line', tooltipLabel, xRange, decimate = true, rightPad, yTitle = '', y2 = null, reserveY2 = false } = {}) {
+  const [a, b] = xRange || VIEW(), span = b - a;
+  // Phones: no second axis and no end label gutter; the series names go in a legend under the chart.
+  const mobileLegend = NARROW && endLabels;
+  if (NARROW) { y2 = null; reserveY2 = false; endLabels = false; rightPad = 10; }
+  const cfg = {
+    type, data: { datasets },
+    options: {
+      animation: false, responsive: true, maintainAspectRatio: false, parsing: false, normalized: true,
+      layout: { padding: { right: rightPad != null ? rightPad : endLabels ? RIGHT_PAD : 10, top: 4 } },
+      interaction: { mode: 'atTime', intersect: false },
+      onHover: (e, _el, ch) => { if (!ch.options.plugins.paper.sync) return; const xv = ch.scales.x.getValueForPixel(e.x); S.hoverX = (xv >= ch.scales.x.min && xv <= ch.scales.x.max) ? xv : null; redrawSynced(ch); },
+      plugins: {
+        legend: legend ? { display: true, position: 'top', align: 'start', labels: { boxWidth: 10, boxHeight: 8, padding: 8, color: INK2, font: { size: 10 } } } : { display: false },
+        tooltip: { backgroundColor: 'rgba(255,255,255,0.97)', titleColor: INK, bodyColor: INK, borderColor: INK, borderWidth: 0.5, cornerRadius: 3, padding: 7, boxWidth: 9, boxHeight: 9, boxPadding: 4, titleFont: { size: 12, weight: '800' }, bodyFont: { size: 12, weight: '600' }, bodySpacing: 3,
+          itemSort: (p, q) => (q.parsed.y || 0) - (p.parsed.y || 0), callbacks: { title: it => it.length ? fmtDT(it[0].chart._atTime != null ? it[0].chart._atTime : it[0].parsed.x, { tz: true }) : '', label: tooltipLabel || (c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}`) } },
+        decimation: { enabled: decimate && type === 'line', algorithm: 'min-max' },
+        paper: { sync: true, events: [], cells: [], ...paper, endLabels },
+      },
+      scales: {
+        x: { type: 'linear', min: a, max: b, offset: false, ...axisStyle(), grid: timeGrid(), title: { display: true, text: `Date and time (${zoneAbbr(b)})`, color: INK, font: { size: 10.5, weight: '700' }, padding: { top: 1 } },
+             afterBuildTicks: s => { s.ticks = timeTicks(s.min, s.max, Math.max(120, s.chart.width - AXIS_W - (y2 || reserveY2 ? Y2_W : 0) - (rightPad != null ? rightPad : endLabels ? RIGHT_PAD : 10))); },
+             ticks: { display: true, color: INK, maxRotation: 0, autoSkip: false, padding: 3, font: c => ({ size: 10.5, weight: c.tick && c.tick.major ? '800' : '600' }), callback: (v, i, ts) => tickLabel(v, span, ts[i]) } },
+        y: { ...axisStyle(), afterFit: s => { s.width = AXIS_W; }, title: { display: !!yTitle, text: yTitle, color: INK, font: { size: 10.5, weight: '700' }, padding: { bottom: 2 } }, ticks: { color: INK, maxTicksLimit: 5, font: { size: 10.5, weight: '600' } }, ...y },
+        ...(y2 || reserveY2 ? { y2: y2 ? {
+          position: 'right', ...axisStyle(), grid: { display: false, drawTicks: true, tickLength: 5, tickColor: INK }, afterFit: s => { s.width = Y2_W; },
+          afterDataLimits: s => { const yy = s.chart.scales.y; s.min = y2.conv(yy.min); s.max = y2.conv(yy.max); },
+          title: { display: true, text: y2.title, color: INK, font: { size: 10.5, weight: '700' } },
+          ticks: { color: INK, maxTicksLimit: 5, font: { size: 10.5, weight: '600' }, callback: v => (+v).toFixed(y2.dec != null ? y2.dec : 2) } }
+          : { position: 'right', display: true, border: { display: false }, grid: { display: false, drawTicks: false }, ticks: { display: false }, afterFit: s => { s.width = Y2_W; } } } : {}),
+      },
+      elements: { point: { radius: 0, hitRadius: 5, hoverRadius: 3 }, line: { borderWidth: 2 } },
+    },
+  };
+  if (charts[id]) charts[id].destroy();
+  const el = document.getElementById(id);
+  charts[id] = new Chart(el, cfg);
+  { const box = el.parentElement, nx = box.nextElementSibling; let lg = nx && nx.classList.contains('mleg') ? nx : null;
+    if (mobileLegend) { if (!lg) { lg = document.createElement('div'); lg.className = 'mleg'; box.after(lg); }
+      lg.innerHTML = datasets.filter(d => d.endLabel).map(d => { const c = d.labelColor || d.borderColor, cc = c === '#ffffff' ? INK : c; return `<span style="color:${cc}"><i style="background:${d.borderColor === '#ffffff' ? INK : d.borderColor}"></i>${d.endLabel}</span>`; }).join(''); }
+    else if (lg) lg.remove(); }
+  el.onmouseleave = () => { S.hoverX = null; redrawSynced(null); };
+  if (cfg.options.plugins.paper.sync) {
+    // Mouse: drag sideways to zoom all linked charts; double click resets.
+    // Touch: tap or slide reads values (Chart.js tooltip and the shared hover line); press and hold,
+    // then drag, zooms a period; double tap resets. Pinch is left to the browser, so it zooms the page
+    // like anywhere else (.cbox allows pan-y and pinch-zoom).
+    const ch = charts[id], ptrs = new Map(), px = e => e.clientX - el.getBoundingClientRect().left;
+    const linked = () => Object.values(charts).filter(c => c.options.plugins.paper && c.options.plugins.paper.sync);
+    el.onpointerdown = e => {
+      if (e.pointerType === 'mouse') { const v = ch.scales.x.getValueForPixel(px(e)); if (v < ch.scales.x.min || v > ch.scales.x.max) return; S.drag = { v0: v, v1: v, px: px(e), x1: null }; return; }
+      ptrs.set(e.pointerId, px(e));
+      if (ptrs.size === 1) { // press and hold 350 ms without moving, then drag: zoom to that period
+        const x0 = px(e), v = ch.scales.x.getValueForPixel(x0); clearTimeout(el._lpT); el._lp = { x: x0 };
+        if (v >= ch.scales.x.min && v <= ch.scales.x.max) el._lpT = setTimeout(() => { if (!el._lp || ptrs.size !== 1) return; S.drag = { v0: v, v1: v, px: x0, x1: x0, touch: true }; try { navigator.vibrate && navigator.vibrate(15); } catch (_) { } redrawSynced(null); }, 350);
+      }
+      if (ptrs.size === 2) { clearTimeout(el._lpT); el._lp = null; S.drag = null; }
+      if (ptrs.size === 2) el._multi = true; // two fingers: the browser's own pinch zoom takes over
+    };
+    el.onpointermove = e => {
+      if (e.pointerType === 'mouse') { if (!S.drag) return; if (Math.abs(px(e) - S.drag.px) > 6) { S.drag.x1 = px(e); S.drag.v1 = Math.max(ch.scales.x.min, Math.min(ch.scales.x.max, ch.scales.x.getValueForPixel(px(e)))); redrawSynced(null); } return; }
+      if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, px(e));
+      if (S.drag && S.drag.touch && ptrs.size === 1) { S.drag.x1 = px(e); S.drag.v1 = Math.max(ch.scales.x.min, Math.min(ch.scales.x.max, ch.scales.x.getValueForPixel(px(e)))); redrawSynced(null); return; }
+      if (el._lp && Math.abs(px(e) - el._lp.x) > 10) { clearTimeout(el._lpT); el._lp = null; } // moved first: just reading values
+    };
+    el.onpointerup = e => {
+      if (e.pointerType === 'mouse') { const d = S.drag; S.drag = null; if (d && d.x1 != null && Math.abs(d.v1 - d.v0) > 20 * MIN) setView([Math.min(d.v0, d.v1), Math.max(d.v0, d.v1)]); else redrawSynced(null); return; }
+      ptrs.delete(e.pointerId); clearTimeout(el._lpT); el._lp = null;
+      if (S.drag && S.drag.touch) { const d = S.drag; S.drag = null; if (Math.abs(d.v1 - d.v0) > 20 * MIN) setView([Math.min(d.v0, d.v1), Math.max(d.v0, d.v1)]); else redrawSynced(null); return; }
+      if (el._multi) { if (!ptrs.size) el._multi = false; return; }
+      const now = Date.now(); if (el._lastTap && now - el._lastTap < 350) { el._lastTap = 0; setView(null); return; } el._lastTap = now;
+    };
+    el.oncontextmenu = e => e.preventDefault();
+    el.onpointercancel = e => { ptrs.delete(e.pointerId); clearTimeout(el._lpT); el._lp = null; S.drag = null; if (!ptrs.size) el._multi = false; };
+    el.ondblclick = () => setView(null);
+  }
+  return charts[id];
+}
+const shading = () => ({ events: S.events.map((e, i) => ({ start: e.start, end: e.end, label: 'Storm ' + (i + 1) })), cells: [] });
+
+/* ======================================================================
+   Rendering
+   ====================================================================== */
+const T_END = () => Math.min(S.win.b, Date.now());
+const VIEW = () => S.view || [S.win.a, S.win.b];
+function setView(v) { S.view = v; document.querySelectorAll('.zoom-reset').forEach(b => b.classList.toggle('hidden', !v)); safe(renderFig1, 'fig1'); safe(renderWT, 'wt'); }
+const stA = s => `<a href="${mesoLink(s.id)}" target="_blank" rel="noopener">${s.id === 'SGHP' ? 'Dendra' : s.id}</a>`;
+// The field station gauge carries the tower's temperature (S.syn.SGHP is built from SGHEN in processAll).
+const lastObs = id => { const p = S.P[id]; if (id === 'SGHP') return p && p.obs.length ? p.obs[bisectRight(p.obs, T_END()) - 1] : null; const st = S.syn && S.syn[id]; return st && st.t.length ? st.t[bisectRight(st.t, T_END()) - 1] : null; };
+
+function summaryParts() {
+  const T = T_END(), live = S.win.b >= Date.now() - 10 * MIN, o = {};
+  if (S.P.SGHP || S.syn) {
+    const tips = CORE.map(id => lastTip(S.P[id], T)).filter(Boolean);
+    o.lastTip = tips.length ? Math.max(...tips.map(x => x.t)) : null;
+    const r24 = CORE.map(id => ({ id, r: sumPrecip(S.P[id], T - DAY, T) })).filter(x => x.r.status !== 'nodata');
+    o.r24 = r24;
+    o.wet = o.lastTip != null && T - o.lastTip < 40 * MIN;
+    o.ta = S.syn ? nearestValue(S.syn.SGHEN, 'air_temp', T, 90 * MIN) : null;
+    o.tr = S.syn ? nearestValue(S.syn.ILKC1, 'air_temp', T, 2 * HOUR) : null;
+    const fl = S.fl.filter(x => x.fl != null && x.t <= T).pop(); o.fl = fl && T - fl.t < 3 * HOUR ? fl.fl : null;
+  }
+  o.now = live ? S.now : null;
+  const tf = S.usgs && S.usgs.q;
+  if (tf && tf.t.length) { const i = bisectRight(tf.t, T) - 1; if (i >= 0) { const q24 = twMean(tf, tf.t[i] - 26 * HOUR, tf.t[i] - 22 * HOUR); o.q = { v: tf.v[i], t: tf.t[i], d: q24 == null ? null : tf.v[i] - q24, res: tf.res }; } }
+  const sw = trip => S.snotel && S.snotel[trip] && (S.snotel[trip].WTEQ || []).filter(x => x.t <= T + DAY && x.v != null).pop();
+  o.il = sw(MAIN_SNOTEL);
+  return o;
+}
+const flTxt = fl => fl == null ? '—' : fl > 12000 ? 'above 12,000 ft' : fl < 4000 ? 'below 4,000 ft' : `${ft(Math.round(fl / 100) * 100)} ft`;
+const phaseTxt = fl => fl == null ? '' : fl > BASIN_TOP ? 'rain over the whole basin' : fl > 7500 ? 'snow on the upper ridges, rain lower' : fl > GAUGE_ELEV ? 'snow over most of the basin, rain near the station' : 'snow down to the station';
+function renderSummary() {
+  const o = summaryParts(), tiles = [];
+  tiles.push(['Precip now', o.wet ? 'Falling' : o.lastTip ? `Dry ${durTxt(T_END() - o.lastTip)}` : 'Dry', o.lastTip ? `last at ${fmtWhen(o.lastTip)}, basin gauges` : 'nothing in the basin this window']);
+  const rr = o.r24 || [], vals = rr.map(x => x.r.mm);
+  tiles.push(['Last 24 h, basin', rr.length ? (Math.min(...vals) === Math.max(...vals) ? `${mmStr(vals[0], 1)} mm` : `${mmStr(Math.min(...vals), 1)}–${mmStr(Math.max(...vals), 1)} mm`) : '—', rr.length ? rr.map(x => `${STN[x.id].short} ${inStr(x.r.mm)} in`).join(', ') : 'no data']);
+  const rn = o.now;
+  tiles.push(['Radar now', rn ? (rn.basin != null && rn.basin >= RADAR_FLOOR ? `${rn.basin.toFixed(0)} dBZ` : 'Clear') : '—', rn ? (rn.near && !(rn.basin >= 30) ? `nearest 30 dBZ echo ${rn.near.d.toFixed(0)} km ${bearing(CENTER, rn.near)}, ${fmtTime(rn.t)}` : rn.basin >= 30 ? `over the basin, ${fmtTime(rn.t)}` : `nothing heavy within ${RADIUS_KM} km, ${fmtTime(rn.t)}`) : '', rn && rn.basin >= 30]);
+  tiles.push(['Air temperature', o.ta != null ? `${cToF(o.ta).toFixed(0)} °F` : '—', `${o.tr != null ? `Independence Lake ${cToF(o.tr).toFixed(0)} °F` : ''}${o.fl != null ? `${o.tr != null ? '; ' : ''}rain line ${flTxt(o.fl)}: ${phaseTxt(o.fl)}` : ''}`]);
+  tiles.push(['Sagehen Creek', o.q ? `${cfs(o.q.v)} cfs` : '—', o.q ? `${icePossible(o.q.t) ? 'ice possible, ' : ''}${o.q.d == null ? '' : Math.abs(o.q.d) <= 2 * o.q.res ? 'steady over 24 h' : o.q.d > 0 ? `up ${cfs(o.q.d)} cfs in 24 h` : `down ${cfs(-o.q.d)} cfs in 24 h`}, ${fmtWhen(o.q.t)}` : 'no data']);
+  const ilH = S.snowH && S.snowH[MAIN_SNOTEL], ilD = ilH && ilH.length ? ilH[ilH.length - 1].v : null;
+  const ilW = S.snowH && S.snowH.swe && S.snowH.swe[MAIN_SNOTEL], sweNow = ilW && ilW.length ? ilW[ilW.length - 1].v : (o.il ? o.il.v : null);
+  tiles.push(['Snowpack', sweNow != null ? `${sweNow.toFixed(1)} in SWE` : '—', o.il ? `Independence Lake${ilD != null ? `, ${ilD} in deep` : ''}${o.il.med != null ? `; median ${o.il.med.toFixed(1)} in` : ''}` : '']);
+  const ACC = ['#0072B2', '#0072B2', '#D55E00', '#CC79A7', '#111111', '#009E73'];
+  document.getElementById('tiles').innerHTML = tiles.map(([k, v, sub, al], i) => `<div class="tile${al ? ' alert' : ''}" style="--acc:${ACC[i]}"><div class="k">${k}</div><div class="v">${v}</div><div class="s" title="${sub}">${sub}</div></div>`).join('');
+  const al = [];
+  if (!S.syn && S.status.syn && S.status.syn.cls === 'err') al.push(`<span class="bad">MesoWest data unavailable: ${S.status.syn.msg}</span>`);
+  if (S.geo && S.geoRows && S.geoRows.length) { const lt = S.geoRows[S.geoRows.length - 1].t; if (Date.now() - lt > 3 * HOUR && S.win.b > Date.now() - HOUR) al.push(`Field station gauge has not reported since ${fmtDT(lt)}.`); }
+  if (S.geo && S.geo.bad > 30 && S.win.b - S.win.a <= 31 * DAY) al.push(`Field station gauge: ${S.geo.bad} readings set aside as faulty in this window.`);
+  document.getElementById('alertline').innerHTML = al.join(' ');
+}
+function summaryText() {
+  const o = summaryParts(), L = [];
+  L.push(o.wet ? `Precipitating in the basin (last at ${fmtTime(o.lastTip)}).` : o.lastTip ? `Dry at the basin gauges for ${durTxt(T_END() - o.lastTip)} (last at ${fmtWhen(o.lastTip)}).` : 'No precipitation at the basin gauges in the window.');
+  if (o.r24 && o.r24.length) L.push(`Last 24 h: ${o.r24.map(x => `${x.id} ${mmStr(x.r.mm)} mm`).join(', ')}.`);
+  if (o.ta != null) L.push(`Air ${cToF(o.ta).toFixed(0)} F at the field station; rain line ${flTxt(o.fl)}${o.fl != null ? ` (${phaseTxt(o.fl)})` : ''}.`);
+  if (o.q) L.push(`Sagehen Creek ${cfs(o.q.v)} cfs at ${fmtWhen(o.q.t)}.`);
+  if (o.il) L.push(`Independence Lake SWE ${o.il.v.toFixed(1)} in${o.il.med != null ? ` (median ${o.il.med.toFixed(1)})` : ''}.`);
+  return L.join(' ');
+}
+
+// Precipitating near this time (a basin gauge caught 0.25 mm within 3 h): dry hours of the rain line are drawn faint.
+function wetHour(t) { return CORE.some(id => sumNoMelt(S.P[id], t - 3 * HOUR, t + 3 * HOUR) >= 0.25); }
+function hourlyBasin() {
+  const out = [], h0 = Math.floor(S.win.a / HOUR) * HOUR;
+  for (let h = h0; h < S.win.b; h += HOUR) {
+    const g = sumPrecip(S.P.SGHP, h, h + HOUR), l = sumPrecip(S.P.ILKC1, h, h + HOUR);
+    out.push({ t: h + HOUR / 2, sghp: g.status === 'nodata' ? null : sumNoMelt(S.P.SGHP, h, h + HOUR), ilk: l.status === 'nodata' ? null : sumNoMelt(S.P.ILKC1, h, h + HOUR) });
+  }
+  return out;
+}
+function renderFig1() {
+  const sh = shading();
+  const hu = hourlyBasin();
+  const w = document.getElementById('p-hr').parentElement.clientWidth - AXIS_W - 20;
+  const [va, vb] = VIEW(), barW = Math.max(1, Math.min(14, w / Math.max(1, (vb - va) / HOUR) * 0.8));
+  const ds = [
+    { type: 'bar', label: 'Independence Lake SNOTEL (ILKC1), 8,337 ft', data: hu.filter(x => x.ilk > 0).map(x => ({ x: x.t, y: x.ilk })), backgroundColor: '#e3b8d3', barThickness: barW, grouped: false, order: 3 },
+    { type: 'bar', label: 'Field station gauge (SGHP), UC NRS, 6,337 ft', data: hu.filter(x => x.sghp > 0).map(x => ({ x: x.t, y: x.sghp })), backgroundColor: INK, barThickness: barW, grouped: false, order: 2 },
+  ];
+  if (document.getElementById('show-radar').checked && S.iem && S.iem.rows.length) {
+    const daily = !S.iem.hourly;
+    ds.push({ type: 'line', label: daily ? 'Radar, basin center, daily mean rate (MRMS)' : 'Radar, basin center (Stage IV)', data: S.iem.rows.filter(r => r.t > S.win.a && r.t0 < S.win.b).map(r => ({ x: (r.t0 + r.t) / 2, y: r.mm / ((r.t - r.t0) / HOUR) })), borderColor: RADAR, backgroundColor: RADAR, borderWidth: 2, stepped: 'middle', order: 1 });
+  }
+  timeChart('p-hr', ds, { type: 'bar', legend: true, rightPad: RIGHT_PAD, yTitle: 'mm per hour', y2: { title: 'in per hour', conv: v => v / 25.4 }, paper: { ...sh, labels: true }, y: { beginAtZero: true, suggestedMax: 1 }, tooltipLabel: c => `${c.dataset.label}: ${c.parsed.y.toFixed(2)} mm/h (${(c.parsed.y / 25.4).toFixed(3)} in/h)` });
+
+  const cum = [];
+  for (const s of [...GAUGES.filter(isFocus), ...GAUGES.filter(g => g.group === 'near'), ...GAUGES.filter(g => g.group === 'context')]) {
+    const p = S.P[s.id]; if (!p || !p.obs.length) continue;
+    const first = p.obs[bisectRight(p.obs, S.win.a)]; if (first == null || first > S.win.b) continue;
+    const pts = [{ x: Math.max(S.win.a, first - 10 * MIN), y: 0 }]; let c = 0;
+    for (const inc of p.incs) if (inc.include && inc.mm > 0 && inc.t > S.win.a && inc.t <= S.win.b) { c = r3(c + inc.mm); pts.push({ x: inc.t, y: c }); }
+    const lo = p.obs[bisectRight(p.obs, S.win.b) - 1]; if (lo > pts[pts.length - 1].x) pts.push({ x: lo, y: c });
+    const ctx = s.group === 'context';
+    cum.push({ label: `${s.short} (${s.id}), ${s.net}, ${ft(s.elev)} ft`, endLabel: `${s.short} ${mmStr(c, 1)}`, data: pts, borderColor: stColor(s), backgroundColor: stColor(s), labelColor: ctx ? INK3 : stColor(s), stepped: true, borderDash: ctx ? [3, 2] : undefined, borderWidth: isFocus(s) ? 2.5 : ctx ? 1.1 : 1.6, order: isFocus(s) ? 0 : 1 });
+  }
+  timeChart('p-cum', cum, { endLabels: true, decimate: false, paper: sh, yTitle: 'Total, mm', y2: { title: 'in', conv: v => v / 25.4 }, y: { beginAtZero: true }, tooltipLabel: c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)} mm (${(c.parsed.y / 25.4).toFixed(2)} in)` });
+
+  const tds = [];
+  if (S.syn) for (const id of TEMP_SHOW) {
+    const st = S.syn[id]; if (!st || !st.v.air_temp) continue; const s = STN[id], pts = [];
+    st.t.forEach((t, i) => { const v = st.v.air_temp[i]; if (v != null && t >= S.win.a && t <= S.win.b) pts.push({ x: t, y: cToF(v) }); });
+    const col = id === 'SGHEN' ? '#0072B2' : stColor(s);
+    if (pts.length) tds.push({ label: `${s.short} (${s.id}), ${s.net}, ${ft(s.elev)} ft`, endLabel: `${s.short} ${ft(s.elev)}`, data: pts, borderColor: col, backgroundColor: col, labelColor: col, borderWidth: isFocus(s) ? 2.5 : 1.4, order: isFocus(s) ? 0 : 1 });
+  }
+  timeChart('p-temp', tds, { endLabels: true, reserveY2: true, yTitle: 'Air temp, °F', paper: { ...sh, hlines: [{ y: 32, label: '32 °F', color: INK2 }, { y: cToF(RAIN_C), color: '#b9b7af', dash: [1, 3] }] }, tooltipLabel: c => `${c.dataset.label}: ${c.parsed.y.toFixed(0)} °F` });
+
+  const flp = S.fl.filter(x => x.t >= S.win.a && x.t <= S.win.b).map(x => ({ x: x.t, y: x.fl == null ? null : Math.max(3000, Math.min(14000, x.fl)) }));
+  const FL_DRY = 'rgba(0,114,178,0.32)', fds = [{ label: 'Rain line, measured', data: flp, borderColor: '#0072B2', backgroundColor: '#0072B2', spanGaps: false, segment: { borderColor: c => wetHour(c.p0.parsed.x) || wetHour(c.p1.parsed.x) ? '#0072B2' : FL_DRY } }];
+  if (S.nws && S.nws.snowLevel.length) { const sl = S.nws.snowLevel.filter(x => x.b > S.win.a && x.a < S.win.b); if (sl.length) fds.push({ label: 'NWS snow level, forecast', data: sl.flatMap(x => [{ x: Math.max(x.a, S.win.a), y: x.v }, { x: Math.min(x.b, S.win.b), y: x.v }]), borderColor: RADAR, backgroundColor: RADAR, borderWidth: 1.4, borderDash: [4, 3], hold: true }); }
+  timeChart('p-fl', fds, { rightPad: RIGHT_PAD, reserveY2: true, yTitle: 'Elevation, ft', legend: fds.length > 1,
+    paper: { ...sh, hlines: [{ y: BASIN_TOP, label: `Basin crest ${ft(BASIN_TOP)} ft`, color: INK }, { y: GAUGE_ELEV, label: `USGS gauge ${ft(GAUGE_ELEV)} ft`, color: INK3 }] },
+    y: { min: 3000, max: 14000, afterBuildTicks: sc => { sc.ticks = [4000, 6000, 8000, 10000, 12000, 14000].map(value => ({ value })); }, ticks: { color: INK, font: { size: 10.5, weight: '600' }, callback: v => ft(v) } }, tooltipLabel: c => `${c.dataset.label}: ${c.parsed.y >= 14000 ? 'above 14,000' : ft(c.parsed.y)} ft` });
+
+  const sds = [], noSnow = [];
+  const longWin = S.win.b - S.win.a > 45 * DAY;
+  for (const sn of SNOTEL) {
+    const rows = longWin ? ((S.snotel && S.snotel[sn.trip] && S.snotel[sn.trip].SNWD) || []).filter(x => x.v != null).map(x => ({ t: x.t, v: x.v })) : ((S.snowH && S.snowH[sn.trip]) || []);
+    const pts = rows.filter(x => x.t >= S.win.a && x.t <= S.win.b).map(x => ({ x: x.t, y: x.v }));
+    if (!pts.length) continue;
+    if (Math.max(...pts.map(q => q.y)) < 1) { noSnow.push(`${sn.name} SNOTEL`); continue; }
+    sds.push({ label: `${sn.name}, SNOTEL ${sn.num}, ${ft(sn.elev)} ft`, endLabel: `${sn.name} ${pts[pts.length - 1].y.toFixed(0)}`, data: pts, borderColor: SNC[sn.trip], backgroundColor: SNC[sn.trip], labelColor: sn.ctx ? INK3 : SNC[sn.trip], stepped: true, borderWidth: sn.ctx ? 1.2 : sn.main ? 2.5 : 1.8, borderDash: sn.ctx ? [3, 2] : undefined, order: 0 });
+  }
+  if (S.syn) for (const st0 of STATIONS) {
+    // SNOTEL depth comes from AWDB above; only the other sonic sensors (Tahoe Donner RAWS) come from MesoWest
+    const st = S.syn[st0.id]; if (!st || !st.v.snow_depth || /^SNOTEL/.test(st0.net) || st0.mode === 'geonor') continue;
+    const pts = qcSnowDepth(st).filter(x => x.qc != null && x.t >= S.win.a && x.t <= S.win.b).map(x => ({ x: x.t, y: x.qc / 25.4 }));
+    if (!pts.length) continue;
+    if (Math.max(...pts.map(q => q.y)) < 1) { noSnow.push(st0.short); continue; }
+    sds.push({ label: `${st0.short} (${st0.id}), ${st0.net}, ${ft(st0.elev)} ft`, endLabel: `${st0.short} ${pts[pts.length - 1].y.toFixed(0)}`, data: pts, borderColor: stColor(st0), backgroundColor: stColor(st0), labelColor: INK3, borderWidth: 1.1, order: 1 });
+  }
+  timeChart('p-snow', sds, { endLabels: true, decimate: false, yTitle: 'Depth, in', y2: { title: 'cm', conv: v => v * 2.54, dec: 0 }, paper: sh, y: { beginAtZero: true, suggestedMax: 6 }, tooltipLabel: c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)} in (${(c.parsed.y * 2.54).toFixed(0)} cm)` });
+  S.noSnow = noSnow;
+  const wds = [];
+  for (const sn of SNOTEL) {
+    const rows = longWin ? ((S.snotel && S.snotel[sn.trip] && S.snotel[sn.trip].WTEQ) || []).filter(x => x.v != null).map(x => ({ t: x.t, v: x.v })) : ((S.snowH && S.snowH.swe && S.snowH.swe[sn.trip]) || []);
+    const pts = rows.filter(x => x.t >= S.win.a && x.t <= S.win.b).map(x => ({ x: x.t, y: x.v }));
+    if (pts.length) wds.push({ label: `${sn.name}, SNOTEL ${sn.num}, ${ft(sn.elev)} ft`, endLabel: `${sn.name} ${pts[pts.length - 1].y.toFixed(1)}`, data: pts, borderColor: SNC[sn.trip], backgroundColor: SNC[sn.trip], labelColor: sn.ctx ? INK3 : SNC[sn.trip], stepped: true, borderWidth: sn.ctx ? 1.2 : sn.main ? 2.5 : 1.8, borderDash: sn.ctx ? [3, 2] : undefined });
+  }
+  timeChart('p-swew', wds, { endLabels: true, decimate: false, yTitle: 'SWE, in', y2: { title: 'mm', conv: v => v * 25.4, dec: 0 }, paper: sh, y: { beginAtZero: true, suggestedMax: 1 }, tooltipLabel: c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)} in (${(c.parsed.y * 25.4).toFixed(0)} mm)` });
+
+  const tf = S.usgs && S.usgs.q, qd = [];
+  let nsp = 0, yq = {};
+  if (tf && tf.t.length) {
+    const main = tf.t.map((t, i) => ({ x: t, y: tf.v[i] })).filter(p => p.x >= S.win.a - HOUR && p.x <= S.win.b + HOUR);
+    const inView = main.filter(p => p.x >= va && p.x <= vb);
+    qd.push({ label: 'Sagehen Creek near Truckee (USGS 10343500), 6,331 ft', data: main, borderColor: INK, backgroundColor: INK, stepped: true, borderWidth: 2 });
+    if (inView.length) { const lo = Math.min(...inView.map(p => p.y)), hi = Math.max(...inView.map(p => p.y)), pad = Math.max(0.1, (hi - lo) * 0.15); yq = { min: Math.max(0, +(lo - pad).toFixed(1)), max: +(hi + pad).toFixed(1) }; }
+    const sp = (tf.spikes || []).filter(x => x.t >= S.win.a && x.t <= S.win.b); nsp = sp.length;
+    if (sp.length) qd.push({ label: 'Removed by QC', data: sp.map(x => ({ x: x.t, y: yq.min != null ? yq.min : x.v, raw: x.v })), showLine: false, pointRadius: 3.5, pointStyle: 'crossRot', borderColor: RADAR, backgroundColor: RADAR, borderWidth: 2, clip: false });
+  }
+  timeChart('p-q', qd, { rightPad: RIGHT_PAD, reserveY2: true, yTitle: 'Discharge, cfs', paper: sh, y: yq, tooltipLabel: c => c.dataset.label === 'Removed by QC' ? `Removed by QC: ${cfs(c.raw.raw)} cfs` : `Sagehen Creek: ${cfs(c.parsed.y)} cfs` });
+
+  document.getElementById('ts-range').textContent = `${fmtDT(va)} to ${fmtDT(vb, { tz: true })}${S.view ? ' (zoomed)' : ''}`;
+  const g = S.geo;
+  document.getElementById('cap1').innerHTML =
+    `<b>a</b> <b>Precipitation:</b> black, the field station's weighing gauge (6,337 ft, beside the creek gauge); pink, Independence Lake SNOTEL on the west ridge (8,337 ft, 2.5 mm steps). Orange: radar at the basin center (${S.iem && !S.iem.hourly ? 'NOAA MRMS daily, drawn as a mean hourly rate' : 'NCEP Stage IV hourly, radar adjusted to gauges'}), often low in snow.<br>` +
+    `<b>b</b> <b>Running total:</b> solid, the basin and gauges within 5 miles; dashed, Truckee area context. SNOTEL gauges step in 2.5 mm; the RAWS and Hobart Mills buckets are unheated and record snow late, as it melts${g && g.bad ? `; ${g.bad} field station readings set aside as faulty` : ''}.<br>` +
+    `<b>c</b> <b>Creek flow:</b> USGS 10343500 at the basin outlet (27.7 km²), provisional${nsp ? `; × marks removed bad reports` : ''}.<br>` +
+    `<b>Bands:</b> gray, storms (${S.minMm} mm or more at a detection gauge, breaks under ${S.gapH} h).`;
+  document.getElementById('cap-snow').innerHTML =
+    `<b>d</b> <b>SWE:</b> the water held in the snowpack, from SNOTEL snow pillows (${longWin ? 'daily' : 'hourly'}); Independence Lake is the only one in the basin.<br>` +
+    `<b>e</b> <b>Snow depth:</b> thick lines, SNOTEL depth sensors; thin, the Tahoe Donner RAWS sonic sensor after QC.${noSnow.length ? ` No snow in the window at ${noSnow.join(', ')}.` : ''}`;
+  document.getElementById('cap-temp').innerHTML =
+    `<b>f</b> <b>Rain line:</b> where air is 34 °F (1 °C), from an hourly fit of ten station temperatures (6,030 to 8,340 ft) against elevation; mostly rain below, snow above. Faint when the basin is dry; gaps are inversions. Dashed orange: the NWS forecast snow level.<br>` +
+    `<b>g</b> <b>Air temperature:</b> the dotted line is 34 °F (1 °C), the rain/snow threshold used throughout.`;
+  safe(() => panelBullets(va, vb), 'bullets');
+}
+
+// Key takeaways as bullets under each panel title; empty when there is nothing notable.
+function panelBullets(va, vb) {
+  const put = (id, items) => { const el = document.getElementById(id); if (el) el.innerHTML = items.filter(Boolean).map(t => `<li>${t}</li>`).join(''); };
+  const inV = e => e.end > va && e.start < vb;
+  const evs = S.events.filter(inV);
+  const A = [], B = [], C = [], D = [], E = [];
+  for (const e of evs.slice(-2)) {
+    const k = S.events.indexOf(e) + 1, st = e.stats || {}, ok = GAUGES.filter(g => isNear(g) && st[g.id] && st[g.id].hasData && !suspectZero(g.id, e.start, e.end));
+    if (ok.length) { const wg = ok.reduce((x, y) => st[y.id].tot > st[x.id].tot ? y : x); A.push(`Storm ${k}, ${fmtSpan(e.start, e.end)}: up to ${mmIn(st[wg.id].tot)} at ${wg.short}`); }
+  }
+  const tot = GAUGES.filter(isNear).map(g => ({ g, r: sumPrecip(S.P[g.id], va, vb) })).filter(x => x.r.status !== 'nodata');
+  const fs = tot.find(x => x.g.id === 'SGHP'), il = tot.find(x => x.g.id === 'ILKC1');
+  if (fs && il && il.r.mm >= 5 && fs.r.mm > 0 && Math.abs(il.r.mm / fs.r.mm - 1) > 0.2) B.push(`Ridge vs meadow: Independence Lake caught ${(il.r.mm / fs.r.mm).toFixed(1)}× the field station (${mmIn(il.r.mm)} vs ${mmIn(fs.r.mm)})`);
+  if (S.syn && S.syn.SGHEN && S.syn.SGHEN.v.air_temp) {
+    const st = S.syn.SGHEN, cold = st.t.map((t, i) => [t, st.v.air_temp[i]]).filter(([t, v]) => v != null && t >= va && t <= vb && v < RAIN_C);
+    const wetCold = cold.filter(([t]) => wetHour(t));
+    if (wetCold.length) D.push(`Below 34 °F at the field station while precipitating, ${fmtSpan(wetCold[0][0], wetCold[wetCold.length - 1][0])}: snow at the creek`);
+  }
+  const fl = S.fl.filter(x => x.fl != null && x.t >= va && x.t <= vb && x.fl < BASIN_TOP && wetHour(x.t));
+  if (fl.length) E.push(`Rain line below the crest ${fmtSpan(fl[0].t, fl[fl.length - 1].t)}, lowest ${flTxt(Math.min(...fl.map(x => x.fl)))}: snow on the upper basin`);
+  if (S.usgs && S.usgs.q && S.usgs.q.t.length && icePossible(Math.min(vb, Date.now()))) C.push('<span class="flag">Ice possible at the gauge: winter stage can rise with no change in flow</span>');
+  let flat = 0;
+  for (const e of evs) {
+    const r = e.resp && e.resp.sagehen_q, k = S.events.indexOf(e) + 1;
+    if (r && r.clear) C.push(`Storm ${k}: rose ${cfs(r.base)} → ${cfs(r.peak)} cfs (+${cfs(r.dQ)}), peak ${r.lag.toFixed(1)} h after the rain`);
+    else if (r && r.base != null && r.peak != null) flat++;
+  }
+  if (flat) C.push(`${flat} storm${flat === 1 ? '' : 's'} with no clear rise (3 gauge steps and 5% within ${LAG_MAX_H} h)`);
+  const Fb = [], snowNow = [];
+  for (const c of (charts['p-snow'] ? charts['p-snow'].data.datasets : [])) {
+    const d = c.data.filter(q => q.x >= va && q.x <= vb); if (d.length < 2) continue;
+    const gain = d[d.length - 1].y - Math.min(...d.map(q => q.y));
+    if (gain >= 2) snowNow.push(`${c.endLabel.replace(/ \d+$/, '')} +${gain.toFixed(0)} in`);
+  }
+  if (snowNow.length) Fb.push(`New snow in this view: ${snowNow.join(', ')}`);
+  put('kb-a', A); put('kb-b', B); put('kb-c', C); put('kb-d', D); put('kb-e', E); put('kb-f', Fb);
+}
+function computeEvents() {
+  S.events = []; S.minor = [];
+  const det = S.det.filter(id => S.P[id]); if (!det.length) return;
+  const r = detectEvents(S.P, det, S.gapH * HOUR, S.minMm), inWin = e => e.end > S.win.a && e.start <= S.win.b;
+  S.events = r.events.filter(inWin); S.minor = r.minor.filter(inWin);
+  S.events.forEach(e => { const nx = r.events.find(x => x.start > e.end); e.nextStart = nx ? nx.start : null; e.beforeWindow = e.start < S.win.a; });
+}
+function flowSeries() { const out = {}; if (S.usgs) out.sagehen_q = { ...S.usgs.q, units: 'cfs' }; return out; }
+function renderStorms() {
+  const tb = document.getElementById('t-storms'), note = document.getElementById('t-storms-note');
+  if (!S.syn && !S.geo) { tb.innerHTML = `<tbody><tr><td class="l bad">Needs gauge data.</td></tr></tbody>`; note.textContent = ''; return; }
+  const F = flowSeries(), notes = [], fn = txt => { let i = notes.indexOf(txt); if (i < 0) { notes.push(txt); i = notes.length - 1; } return `<sup class="f">${String.fromCharCode(97 + i)}</sup>`; };
+  const rows = [];
+  S.events.forEach((e, i) => {
+    const stats = Object.fromEntries(GAUGES.map(g => [g.id, eventStationStats(e, S.P[g.id], S.syn && S.syn[g.id])]));
+    e.stats = stats; e.resp = {};
+    // Lag is timed from the basin precipitation that fell before the peak (multi-burst storms otherwise put the centroid after it).
+    const upTips = [];
+    for (const g of GAUGES.filter(isFocus)) { const p = S.P[g.id]; if (p) for (const inc of p.incs) if (inc.include && inc.mm > 0 && inc.t > e.start && inc.t <= e.end) upTips.push(inc); }
+    const cen = tmax => { let w = 0, wt = 0; for (const x of upTips) if (x.t <= tmax) { w += x.mm; wt += x.mm * (x.t0 + x.t) / 2; } return w ? wt / w : null; };
+    e.centroidUp = cen(Infinity) || e.centroid;
+    for (const f of FLOW) {
+      if (!F[f.key] || !F[f.key].t.length) continue;
+      let r = flowResponse({ ...e, centroid: e.centroidUp }, e.nextStart, F[f.key]);
+      const c2 = r && r.tpk ? cen(r.tpk) : null;
+      if (c2 != null) r = flowResponse({ ...e, centroid: c2 }, e.nextStart, F[f.key]);
+      e.resp[f.key] = r;
+    }
+    const okG = g => stats[g.id].hasData && !suspectZero(g.id, e.start, e.end);
+    const basin = CORE.filter(id => okG(STN[id])).map(id => stats[id].tot), near = GAUGES.filter(g => isNear(g) && okG(g)).map(g => stats[g.id].tot);
+    const temps = S.det.map(id => stats[id]).filter(x => x && x.meanT != null), mt = temps.length ? temps.reduce((x, y) => x + y.meanT, 0) / temps.length : null;
+    let flags = '';
+    const dry = GAUGES.filter(g => g.unheated && stats[g.id].hasData && stats[g.id].tot === 0 && stats[g.id].meanT != null && stats[g.id].meanT < 1);
+    if (dry.length && near.length && Math.max(...near) >= S.minMm) flags += fn(`Storm ${i + 1}: ${dry.map(g => g.short).join(', ')} caught nothing below 34 °F, likely snow sitting in unheated buckets; expect delayed melt tips.`);
+    const melt = GAUGES.filter(g => g.unheated && S.P[g.id] && S.P[g.id].incs.some(x => x.melt && x.include && x.mm > 0 && x.t > e.start && x.t <= e.end));
+    if (melt.length) flags += fn(`Storm ${i + 1}: ${melt.map(g => g.short).join(', ')} ${melt.length === 1 ? 'is' : 'are'} unheated and had been below 34 °F; ${melt.length === 1 ? 'its' : 'their'} total may include melt of earlier snow.`);
+    const wet = GAUGES.filter(g => stats[g.id].tot >= 0.5); e.singleGauge = wet.length === 1;
+    if (e.singleGauge) flags += fn('Only one gauge recorded 0.5 mm or more: an isolated cell or a gauge artifact.');
+    if (e.beforeWindow) flags += fn('Began before the window.');
+    if (S.geo && S.geo.resets.some(x => x.t > e.start - HOUR && x.t < e.end + HOUR && x.from - x.to > GEO_DRAIN)) flags += fn('The field station gauge was drained during this storm; precipitation in the hour of the drain may be missed.');
+    const r = e.resp.sagehen_q;
+    if (r) for (const f of r.flags) flags += fn(`Sagehen Creek: ${f}.`);
+    const rd = radarAmount(e.start - 30 * MIN, e.end + 30 * MIN);
+    rows.push(`<tr class="click" data-s="${e.start}" data-e="${e.end}" data-t="${e.start + (e.end - e.start) / 2}"><td class="l"><b>Storm ${i + 1}</b>${flags}</td><td class="l">${fmtSpan(e.start, e.end)}</td><td>${durTxt(e.end - e.start)}</td>
+      <td>${CORE.map(id => okG(STN[id]) ? mmStr(stats[id].tot, 1) : '—').join(' / ')}</td><td>${near.length ? `${mmStr(Math.min(...near), 1)}–${mmStr(Math.max(...near), 1)}` : '—'}</td>
+      <td>${rd ? `${rd.mm.toFixed(1)}${rd.partial ? '<sup class="f">p</sup>' : ''}` : '<span class="muted">n/a</span>'}</td>
+      <td class="l">${mt == null ? '—' : `${mt < 1 ? 'mixed/snow' : 'rain'} <span class="muted">${cToF(mt).toFixed(0)} °F</span>`}</td>
+      <td>${r && r.base != null && r.peak != null ? `${cfs(r.base)} → ${cfs(r.peak)}` : '—'}</td><td>${r && r.dQ != null ? (r.dQ >= 0 ? '+' : '') + cfs(r.dQ) : '—'}</td><td>${r && r.clear ? r.lag.toFixed(1) : '—'}</td></tr>`);
+  });
+  tb.innerHTML = `<thead><tr><th class="l"></th><th class="l">Start to end</th><th>Duration</th><th>Field station / Indep. Lake<br>mm</th><th>All gauges within 5 mi<br>mm</th><th>Radar, basin<br>mm</th><th class="l">Rain or snow</th><th>Sagehen Creek<br>cfs</th><th>ΔQ<br>cfs</th><th>Lag<br>h</th></tr></thead>` +
+    `<tbody>${rows.join('') || `<tr><td class="l muted" colspan="10">No storms in this window.</td></tr>`}</tbody>`;
+  note.innerHTML = notes.map((n, i) => `<sup class="f">${String.fromCharCode(97 + i)}</sup> ${n}`).join('<br>') + (notes.length ? '<br>' : '') +
+    (S.minor.length ? `${S.minor.length} lighter group${S.minor.length === 1 ? '' : 's'} below ${S.minMm} mm not listed. ` : '') +
+    `Ranges run from the driest to the wettest gauge. Radar is the Stage IV estimate at the basin center over whole hours (<sup class="f">p</sup>: not all hours in yet). Lag runs from the middle of the basin precipitation to the flow peak. Click a row to zoom the charts and set the map radar to it.`;
+  document.getElementById('storm-def').textContent = `${S.events.length} storm${S.events.length === 1 ? '' : 's'} in the window`;
+  tb.querySelectorAll('tr.click').forEach(tr => tr.onclick = () => {
+    const a = +tr.dataset.s, b = +tr.dataset.e;
+    tb.querySelectorAll('tr.sel').forEach(x => x.classList.remove('sel')); tr.classList.add('sel');
+    setView([a - 6 * HOUR, Math.min(Date.now(), b + 18 * HOUR)]); setRadarTime(+tr.dataset.t, [a - HOUR, b + HOUR]);
+  });
+}
+
+/* Forecast (NWS Reno gridded forecast at the basin) */
+function renderForecast() {
+  const n = S.nws, cap = document.getElementById('cap-fc');
+  if (!n) { cap.textContent = S.status.nws && S.status.nws.cls === 'err' ? `Forecast unavailable: ${S.status.nws.msg}` : ''; return; }
+  const a = Math.floor(Date.now() / HOUR) * HOUR - 2 * HOUR, end = Math.max(...[n.pop, n.qpf, n.snowLevel].map(s => s.length ? s[s.length - 1].b : 0));
+  const xr = S.fview || [a, Math.min(end, a + 7.5 * DAY)];
+  const step = (s, f = v => v) => s.filter(x => x.b > xr[0] && x.a < xr[1]).flatMap(x => [{ x: Math.max(x.a, xr[0]), y: f(x.v) }, { x: Math.min(x.b, xr[1]) - 1, y: f(x.v) }]);
+  const opts = (extra) => ({ xRange: xr, rightPad: RIGHT_PAD, reserveY2: true, paper: { sync: false }, decimate: false, ...extra });
+  timeChart('p-fpop', [{ label: 'Chance of precipitation', data: step(n.pop), borderColor: '#0072B2', backgroundColor: 'rgba(0,114,178,0.12)', fill: 'origin', borderWidth: 2, hold: true }],
+    opts({ yTitle: 'Chance, %', y: { min: 0, max: 100, afterBuildTicks: sc => { sc.ticks = [0, 25, 50, 75, 100].map(value => ({ value })); } }, tooltipLabel: c => `Chance: ${c.parsed.y.toFixed(0)}%` }));
+  const qb = n.qpf.filter(x => x.b > xr[0] && x.a < xr[1]);
+  const w = document.getElementById('p-fqpf').parentElement.clientWidth - AXIS_W - 20, bw = Math.max(2, Math.min(30, w / Math.max(1, (xr[1] - xr[0]) / (6 * HOUR)) * 0.85));
+  timeChart('p-fqpf', [{ type: 'bar', label: 'Forecast amount (QPF)', data: qb.map(x => ({ x: (x.a + x.b) / 2, y: x.v })), backgroundColor: INK, barThickness: bw }],
+    opts({ type: 'bar', yTitle: 'mm per period', y2: { title: 'in', conv: v => v / 25.4 }, y: { beginAtZero: true, suggestedMax: 2 }, tooltipLabel: c => `Forecast: ${c.parsed.y.toFixed(1)} mm (${(c.parsed.y / 25.4).toFixed(2)} in) for the ${durTxt(qb[c.dataIndex].b - qb[c.dataIndex].a)} period` }));
+  timeChart('p-fsnow', [{ label: 'Snow level', data: step(n.snowLevel), borderColor: RADAR, backgroundColor: RADAR, borderWidth: 2, hold: true }],
+    opts({ yTitle: 'Elevation, ft', paper: { sync: false, hlines: [{ y: BASIN_TOP, label: `Basin crest ${ft(BASIN_TOP)} ft`, color: INK }, { y: GAUGE_ELEV, label: `USGS gauge ${ft(GAUGE_ELEV)} ft`, color: INK3 }] }, y: { suggestedMin: 4000, suggestedMax: 10000, ticks: { color: INK, maxTicksLimit: 6, font: { size: 10.5, weight: '600' }, callback: v => ft(v) } }, tooltipLabel: c => `Snow level: ${ft(Math.round(c.parsed.y / 100) * 100)} ft` }));
+  const pk = maxIn(n.pop, Date.now(), Date.now() + 3 * DAY), q3 = sumIn(n.qpf, Date.now(), Date.now() + 3 * DAY), K = [];
+  if (pk.v != null && pk.v >= 30) K.push(`Up to ${pk.v}% chance in the next 3 days, highest from ${fmtDT(pk.at)}${q3.mm >= 0.5 ? `; ${mmIn(q3.mm)} forecast` : ''}`);
+  const wetSl = n.snowLevel.filter(x => x.b > Date.now() && x.a < Date.now() + 3 * DAY && n.pop.some(p => overlap(p, x.a, x.b) > 0 && p.v >= 30));
+  if (wetSl.length) { const lo = Math.min(...wetSl.map(x => x.v)), hi = Math.max(...wetSl.map(x => x.v)); K.push(`Snow level ${ft(Math.round(lo / 100) * 100)} to ${ft(Math.round(hi / 100) * 100)} ft while precipitation is likely: ${lo < GAUGE_ELEV ? 'snow down to the creek' : lo < BASIN_TOP ? 'snow on the upper basin' : 'rain over the whole basin'}`); }
+  document.getElementById('kb-fc').innerHTML = K.map(t => `<li>${t}</li>`).join('');
+  document.getElementById('fc-src').textContent = `NWS Reno, issued ${fmtDT(n.updated)}`;
+  cap.innerHTML = `NWS gridded forecast for the 2.5 km cell over the basin center (REV 28,105). <b>h</b> Chance for each forecast period, so a long flat step is one broad period, not steady rain. <b>i</b> Amount for each period (QPF), issued about 3 days ahead, so a blank tail means no amount yet, not no rain. <b>j</b> Snow level: below it mostly snow; compare with the measured rain line in <b>f</b>.`;
+}
+
+/* Map */
+let map = null, radarLayer = null, stationLayer = null;
+function initMap() {
+  if (map || !window.L) return;
+  map = L.map('map', { scrollWheelZoom: false, zoomSnap: 0.25 }).fitBounds([[39.398, -120.33], [39.472, -120.18]], { padding: [6, 6] });
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', { maxZoom: 15, attribution: 'Hillshade: Esri' }).addTo(map);
+  L.polygon(BASIN.map(([lo, la]) => [la, lo]), { color: '#111', weight: 1.25, fill: false, dashArray: '4 3', interactive: false }).addTo(map);
+  stationLayer = L.layerGroup().addTo(map);
+}
+function popupStation(s) {
+  const p = S.P[s.id], T = T_END(), w = sumPrecip(p, S.win.a, S.win.b), st = S.syn && S.syn[s.tempFrom || s.id];
+  const last = lastObs(s.id), ta = st && nearestValue(st, 'air_temp', T, 2 * HOUR);
+  return `<b>${s.name}</b><br>${ft(s.elev)} ft · run by ${s.net}${s.id === 'SGHP' ? ' (Dendra)' : ` · MesoWest ${s.id}`}<br>${s.mode ? `Window: ${w.status === 'nodata' ? 'no data' : mmStr(w.mm) + ' mm'}<br>` : ''}${ta != null ? `Air ${cToF(ta).toFixed(0)} °F<br>` : ''}${last ? `Last report ${fmtWhen(last)}<br>` : ''}<a href="${mesoLink(s.id)}" target="_blank" rel="noopener">${s.id === 'SGHP' ? 'Dendra station page' : 'MesoWest page'}</a>`;
+}
+function renderMap() {
+  initMap(); if (!map) return;
+  stationLayer.clearLayers();
+  const OFF = { left: [-7, 0], right: [7, 0], top: [0, -7], bottom: [0, 7] };
+  const label = (m, txt, dir = 'right', muted = false) => m.bindTooltip(txt, { permanent: true, direction: dir, className: muted ? 'stlab ctx' : 'stlab', offset: OFF[dir] });
+  const DIR = { SGHP: 'top', NV012: 'bottom', ICPC1: 'right', ICKC1: 'right', ILKC1: 'left' }, NOLABEL = new Set(['SGHEN']), SNOTEL_IDS = { ILKC1: 541, ICPC1: 539, ICKC1: 540, CSSC1: 428, TRUC1: 834 };
+  for (const s of STATIONS) {
+    if (SNOTEL_IDS[s.id]) continue; // drawn as SNOTEL triangles below
+    const f = isNear(s);
+    const m = L.circleMarker([s.lat, s.lon], { radius: f ? 6 : 4, color: f ? '#111' : '#8a8a86', weight: f ? 1.2 : 0.8, fillColor: s.mode ? stColor(s) : '#fff', fillOpacity: 1 }).bindPopup(popupStation(s));
+    (NOLABEL.has(s.id) ? m : label(m, s.id === 'SGHP' ? 'Field station' : s.short, DIR[s.id] || 'right', !f)).addTo(stationLayer);
+  }
+  for (const s of STATIONS.filter(x => SNOTEL_IDS[x.id])) {
+    const ic = L.divIcon({ className: '', html: `<svg width="12" height="12" viewBox="0 0 12 12"><path d="M6 1 L11 11 L1 11 Z" fill="${isNear(s) ? '#111' : '#8a8a86'}"/></svg>`, iconSize: [12, 12], iconAnchor: [6, 7] });
+    label(L.marker([s.lat, s.lon], { icon: ic }).bindPopup(popupStation(s) + `<br><a href="${snotelLink(SNOTEL_IDS[s.id])}" target="_blank" rel="noopener">NRCS site page</a>`), s.short, DIR[s.id] || 'right', !isNear(s)).addTo(stationLayer);
+  }
+  const F = flowSeries();
+  for (const f of FLOW) {
+    const s = F[f.key], ic = L.divIcon({ className: '', html: `<svg width="10" height="10"><rect x="0.5" y="0.5" width="9" height="9" fill="#111"/></svg>`, iconSize: [10, 10], iconAnchor: [5, 5] });
+    label(L.marker([f.lat, f.lon], { icon: ic }).bindPopup(`<b>${f.name}</b><br>${f.note}, ${ft(f.elev)} ft<br>${s && s.t.length ? `${cfs(s.v[s.v.length - 1])} cfs at ${fmtWhen(s.t[s.t.length - 1])}<br>` : ''}<a href="${f.link}" target="_blank" rel="noopener">USGS site page</a>`), 'USGS gauge', 'bottom').addTo(stationLayer);
+  }
+  for (const c of CAMS) {
+    const ic = L.divIcon({ className: '', html: `<svg width="9" height="9"><rect x="1.5" y="1.5" width="6" height="6" fill="#111" transform="rotate(45 4.5 4.5)"/></svg>`, iconSize: [9, 9], iconAnchor: [4.5, 4.5] });
+    L.marker([c.lat, c.lon], { icon: ic }).bindPopup(`<b>${c.name}</b> (PhenoCam ${c.id})<br><img src="https://phenocam.nau.edu/data/latest/${c.id}.jpg" style="width:220px;display:block;margin-top:4px" alt="${c.name}">`).addTo(stationLayer);
+  }
+  if (!S.radarTimes.length) setRadarTimes(T_END() - 2 * HOUR, T_END());
+  updateRadarLayer();
+}
+// Map radar frames are just mosaic tile times (5 min); nothing is decoded for the overlay.
+function setRadarTimes(a, b) {
+  const end = Math.min(b, Date.now() - 8 * MIN), out = [];
+  for (let t = Math.ceil(a / (5 * MIN)) * 5 * MIN; t <= end; t += 5 * MIN) out.push(t);
+  if (out.length > 96) { const k = Math.ceil(out.length / 96); S.radarTimes = out.filter((_, i) => i % k === 0); } else S.radarTimes = out;
+  const sl = document.getElementById('radar-t'); sl.max = Math.max(0, S.radarTimes.length - 1);
+  S.radarT = S.radarTimes.length ? S.radarTimes[S.radarTimes.length - 1] : null; sl.value = sl.max;
+}
+function setRadarTime(t, span) {
+  if (span) setRadarTimes(span[0], span[1]);
+  if (!S.radarTimes.length) return;
+  let bi = 0; S.radarTimes.forEach((x, i) => { if (Math.abs(x - t) < Math.abs(S.radarTimes[bi] - t)) bi = i; });
+  S.radarT = S.radarTimes[bi]; document.getElementById('radar-t').value = bi;
+  updateRadarLayer();
+}
+function updateRadarLayer() {
+  if (!map) return;
+  if (radarLayer) { map.removeLayer(radarLayer); radarLayer = null; }
+  const lbl = document.getElementById('radar-lbl');
+  if (!document.getElementById('map-radar').checked || S.radarT == null) { lbl.textContent = S.radarT == null ? 'no radar frames' : ''; return; }
+  radarLayer = L.tileLayer(`https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::USCOMP-N0Q-${radarStamp(S.radarT)}/{z}/{x}/{y}.png`, { opacity: 0.62, maxNativeZoom: 12, maxZoom: 15, attribution: 'NEXRAD mosaic: IEM' }).addTo(map);
+  const n = S.now && S.now.t === S.radarT ? S.now : null;
+  lbl.textContent = `${fmtDT(S.radarT, { tz: true })}${n ? (n.basin != null ? ` · basin max ${n.basin.toFixed(0)} dBZ` : ' · no echo over the basin') : ''}`;
+}
+function renderElev() {
+  const pts = [];
+  for (const s of PRECIP_ALL) { const w = sumPrecip(S.P[s.id], S.win.a, S.win.b); if (w.status !== 'nodata') pts.push({ x: w.mm, y: s.elev, s, partial: w.status === 'partial' }); }
+  const ax = axisStyle();
+  const cfg = {
+    type: 'scatter',
+    data: { datasets: [{ label: 'Gauges', data: pts, pointRadius: pts.map(p => isNear(p.s) ? 6 : 4), pointHoverRadius: 7, pointBackgroundColor: pts.map(p => isNear(p.s) ? stColor(p.s) : '#fff'), pointBorderColor: pts.map(p => isNear(p.s) ? '#111' : '#9a9a9a'), pointBorderWidth: 1.5, pointStyle: pts.map(p => p.s.mode === 'ratchet' ? 'triangle' : 'circle') }] },
+    options: {
+      animation: false, responsive: true, maintainAspectRatio: false, layout: { padding: { right: 86, top: 6 } },
+      plugins: { legend: { display: false }, decimation: { enabled: false }, paper: { sync: false },
+        tooltip: { backgroundColor: 'rgba(255,255,255,0.96)', titleColor: INK, bodyColor: INK, borderColor: INK, borderWidth: 0.5, callbacks: { title: () => '', label: c => `${c.raw.s.name} (${c.raw.s.id}, ${c.raw.s.net}): ${mmIn(c.raw.x, 2)} at ${ft(c.raw.y)} ft${c.raw.partial ? ' (partial)' : ''}` } } },
+      scales: {
+        x: { ...ax, beginAtZero: true, title: { display: true, text: 'Window precipitation, mm (in)', color: INK, font: { size: 10.5, weight: '700' } }, ticks: { color: INK, font: { size: 10.5, weight: '600' }, callback: v => `${v} (${(v / 25.4).toFixed(2)})` } },
+        y: { ...ax, min: 5800, max: 8600, title: { display: true, text: 'Gauge elevation, ft', color: INK, font: { size: 10.5, weight: '700' } }, ticks: { color: INK, font: { size: 10.5, weight: '600' }, callback: v => ft(v) } },
+      },
+    },
+    plugins: [{ id: 'ptlab', afterDatasetsDraw(ch) { const { ctx } = ch, meta = ch.getDatasetMeta(0); ctx.save(); ctx.font = '700 10.5px Arial, Helvetica'; ctx.textBaseline = 'middle'; meta.data.forEach((el, i) => { ctx.fillStyle = isNear(pts[i].s) ? INK : INK3; ctx.fillText(pts[i].s.short, el.x + 7, el.y); }); ctx.restore(); } }],
+  };
+  if (charts['p-elev']) charts['p-elev'].destroy();
+  charts['p-elev'] = new Chart(document.getElementById('p-elev'), cfg);
+  document.getElementById('cap2').innerHTML = `Dashed outline: Sagehen Creek above USGS 10343500 (NLDI basin, 27.7 km²). Filled symbols measure precipitation; open circles temperature and wind only; triangles are SNOTEL; the square is the stream gauge; diamonds are cameras. Gray symbols are Truckee area context. Tap a station for its latest values and source. The slider steps through radar mosaic frames (5 min) for the last 2 h, or for a storm you click.`;
+  document.getElementById('cap-elev').innerHTML = `Triangles are SNOTEL storage gauges, circles the field station weighing gauge and the tipping buckets (unheated buckets undercatch snow). Winter storms usually build totals with elevation, toward Independence Lake on the crest.`;
+  const ok = pts.filter(p => isNear(p.s) && !p.s.unheated);
+  let key = '';
+  if (ok.length >= 3 && Math.max(...ok.map(p => p.x)) >= 2) {
+    const n = ok.length, mx = ok.reduce((a, p) => a + p.y, 0) / n, my = ok.reduce((a, p) => a + p.x, 0) / n;
+    let sxy = 0, sxx = 0, syy = 0; for (const p of ok) { sxy += (p.y - mx) * (p.x - my); sxx += (p.y - mx) ** 2; syy += (p.x - my) ** 2; }
+    const r = sxy / Math.sqrt(sxx * syy || 1);
+    key = r > 0.5 ? 'Totals increase with elevation, the usual orographic pattern.' : r < -0.3 ? '<span class="flag">Lower gauges got more than the crest: showers or a shadowed ridge gauge.</span>' : '';
+  }
+  document.getElementById('kb-elev').innerHTML = key ? `<li>${key}</li>` : '';
+}
+function renderWT() {
+  const wt = S.usgs && S.usgs.wt, ds = [];
+  if (wt && wt.t.length) ds.push({ label: 'Sagehen Creek water temperature (USGS 10343500)', data: wt.t.map((t, i) => ({ x: t, y: cToF(wt.v[i]) })).filter(p => p.x >= S.win.a && p.x <= S.win.b), borderColor: '#0072B2', backgroundColor: '#0072B2', borderWidth: 2 });
+  const tw = S.syn && S.syn.SGHEN;
+  if (tw && tw.v.air_temp) ds.push({ label: 'Air at the field station (SGHEN), 6,337 ft', data: tw.t.map((t, i) => ({ x: t, y: tw.v.air_temp[i] == null ? null : cToF(tw.v.air_temp[i]) })).filter(p => p.x >= S.win.a && p.x <= S.win.b && p.y != null), borderColor: '#b9b7af', backgroundColor: '#b9b7af', borderWidth: 1 });
+  timeChart('p-wt', ds, { legend: true, xRange: VIEW(), yTitle: 'Temperature, °F', paper: { ...shading(), sync: false, hlines: [{ y: 32, label: '32 °F', color: INK2 }] }, tooltipLabel: c => `${c.dataset.label.replace(/ \(.*$/, '')}: ${c.parsed.y.toFixed(1)} °F` });
+  const K = [];
+  if (wt && wt.t.length) { const i = bisectRight(wt.t, T_END()) - 1; if (i >= 0) { const d = wt.v.filter((_, j) => wt.t[j] > wt.t[i] - DAY && wt.t[j] <= wt.t[i]); K.push(`${cToF(wt.v[i]).toFixed(1)} °F at ${fmtWhen(wt.t[i])}; ${cToF(Math.min(...d)).toFixed(1)} to ${cToF(Math.max(...d)).toFixed(1)} °F over the last 24 h`); } }
+  document.getElementById('kb-wt').innerHTML = K.map(t => `<li>${t}</li>`).join('');
+  document.getElementById('cap-wt').innerHTML = `Water temperature at the gauge every 15 min (provisional), with air temperature at the field station tower in gray. Snowmelt and rain on snow pull the creek toward 32 °F; groundwater keeps it from freezing.`;
+}
+
+function renderStationTable() {
+  const tb = document.getElementById('t-stations');
+  if (!S.syn && !S.geo) { tb.innerHTML = `<tbody><tr><td class="l bad">Station data unavailable.</td></tr></tbody>`; return; }
+  const T = T_END(), mid = midnightLocal(T);
+  const cell = r => r.status === 'nodata' ? '<span class="muted">no data</span>' : `${mmStr(r.mm)}<span class="inch"> ${inStr(r.mm)}</span>${r.status === 'partial' ? '<sup class="f">p</sup>' : ''}`;
+  const row = s => {
+    const p = S.P[s.id], st = S.syn && S.syn[s.tempFrom || s.id];
+    const w = sumPrecip(p, S.win.a, S.win.b), r24 = sumPrecip(p, T - DAY, T), rm = sumPrecip(p, mid, T);
+    const last = lastObs(s.id), ta = nearestValue(st, 'air_temp', T, 2 * HOUR);
+    const sd = /^SNOTEL/.test(s.net) ? null : qcSnowDepth(S.syn && S.syn[s.id]).filter(x => x.t <= T).pop(), fc = flagCounts(p, S.win.a, S.win.b), qc = [];
+    const snow = /^SNOTEL/.test(s.net) ? (() => { const sn = SNOTEL.find(x => x.lat === s.lat), h = sn && S.snowH && S.snowH[sn.trip]; return h && h.length ? h[h.length - 1].v : null; })() : sd && sd.qc != null ? sd.qc / 25.4 : null;
+    if (fc.reset) qc.push(`${fc.reset} reset`); if (fc.gap) qc.push(`${fc.gap} gap`); if (fc.excluded) qc.push(`<span class="bad">${fc.excluded} suspect out (${mmStr(w.excluded)} mm)</span>`); if (fc.corroborated) qc.push(`${fc.corroborated} suspect kept`);
+    if (sd && sd.flag) qc.push(`depth: ${sd.flag}`);
+    if (s.id === 'SGHP' && S.geo) { const nb = S.geo.badAt ? S.geo.badAt.filter(t => t > S.win.a && t <= S.win.b).length : 0; if (nb) qc.push(`<span class="bad">${nb} readings set aside as faulty</span>`); const dr = S.geo.resets.filter(x => x.t > S.win.a && x.t <= S.win.b && x.from - x.to > GEO_DRAIN); if (dr.length) qc.push(`drained ${fmtWhen(dr[dr.length - 1].t)}`); }
+    if (s.unheated && p) { const nm = p.incs.filter(x => x.melt && x.include && x.mm > 0 && x.t > S.win.a && x.t <= S.win.b); if (nm.length) qc.push(`unheated: ${mmStr(r3(nm.reduce((a2, x) => a2 + x.mm, 0)))} mm after sub 34 °F air, not used to find storms`); }
+    if (s.mode && isFocus(s) && suspectZero(s.id, S.win.a, S.win.b)) qc.push('<span class="bad">caught nothing while nearby gauges did</span>');
+    const stale = last && Date.now() - last > (s.mode === 'ratchet' ? 3 : 2) * HOUR && S.win.b > Date.now() - HOUR;
+    return `<tr class="${s.group === 'context' ? 'ctx' : ''}"><td class="l"><span class="sw" style="background:${s.mode ? stColor(s) : '#fff'};border:0.75px solid ${isNear(s) ? '#111' : '#9a988f'}"></span>${s.name} <span class="op">${s.net}${s.unheated ? ' · unheated' : ''} · ${stA(s)}</span></td><td>${ft(s.elev)}</td>
+      <td>${s.mode ? cell(w) : '—'}</td><td>${s.mode ? cell(r24) : '—'}</td><td>${s.mode ? cell(rm) : '—'}</td><td>${ta == null ? '—' : cToF(ta).toFixed(0)}</td>
+      <td>${snow != null ? snow.toFixed(1) : '—'}</td><td class="${stale ? 'flag' : ''}">${last ? fmtWhen(last) : '<span class="muted">none</span>'}</td><td class="l muted">${qc.join(', ') || 'clean'}</td></tr>`;
+  };
+  tb.innerHTML = `<thead><tr><th class="l">Station, operator</th><th>Elev<br>ft</th><th>Window<br>mm <span class="inch">in</span></th><th>Last 24 h<br>mm <span class="inch">in</span></th><th>Since midnight<br>mm <span class="inch">in</span></th><th>Air<br>°F</th><th>Snow<br>in</th><th>Last<br>report</th><th class="l">QC</th></tr></thead><tbody>` +
+    `<tr class="grp"><td colspan="9">Sagehen basin</td></tr>` + STATIONS.filter(isFocus).map(row).join('') +
+    `<tr class="grp"><td colspan="9">Within 5 miles</td></tr>` + STATIONS.filter(s => s.group === 'near').map(row).join('') +
+    `<tr class="grp ctx"><td colspan="9">Truckee area, for context</td></tr>` + STATIONS.filter(s => s.group === 'context').map(row).join('') + `</tbody>`;
+  document.getElementById('st-asof').textContent = `as of ${fmtDT(T, { tz: true })}`;
+  document.getElementById('t-stations-note').innerHTML = `<sup class="f">p</sup> Partial: the last report is older than the gauge's usual delay, so the total may still grow. SNOTEL gauges report hourly in 2.5 mm steps; tipping buckets are ±0.25 mm and minimums in snow. The field station gauge's temperature is the tower's (SGHEN).`;
+}
+
+// Daily SNOTEL values are measured at midnight and posted the next day; add the newest hourly reading so
+// the season charts are not up to a day behind during a storm.
+function withLatestHour(arr, hourly) {
+  if (!hourly || !hourly.length || !arr.length) return arr;
+  const h = hourly[hourly.length - 1], last = arr[arr.length - 1];
+  return h.t > last.t ? [...arr, { date: 'latest', t: h.t, v: h.v, med: null, latest: true }] : arr;
+}
+function renderSWE() {
+  const ds = [], T = T_END(), a = waterYearStart(T), b = Math.max(T, a + 60 * DAY);
+  const line = (s, key, hourly, dec) => { const arr = withLatestHour(((S.snotel[s.trip] || {})[key] || []).filter(x => x.t >= a && x.v != null), hourly); return arr.length ? { label: `${s.name}, SNOTEL ${s.num}, ${ft(s.elev)} ft`, endLabel: `${s.name} ${arr[arr.length - 1].v.toFixed(dec)}`, data: arr.map(x => ({ x: x.t, y: x.v })), borderColor: SNC[s.trip], backgroundColor: SNC[s.trip], labelColor: s.ctx ? INK3 : SNC[s.trip], borderWidth: s.main ? 2 : 1.3, borderDash: s.ctx ? [3, 2] : undefined } : null; };
+  if (S.snotel) {
+    for (const s of SNOTEL) { const l = line(s, 'WTEQ', S.snowH && S.snowH.swe && S.snowH.swe[s.trip], 1); if (l) ds.push(l); }
+    const med = ((S.snotel[MAIN_SNOTEL] || {}).WTEQ || []).filter(x => x.t >= a && x.med != null);
+    if (med.length) ds.push({ label: 'Independence Lake median', endLabel: 'median', data: med.map(x => ({ x: x.t, y: x.med })), borderColor: INK3, backgroundColor: INK3, borderWidth: 1, borderDash: [1, 2.5] });
+  }
+  timeChart('p-swe', ds, { showX: true, endLabels: true, decimate: false, xRange: [a, b], rightPad: 78, yTitle: 'SWE, in', y2: { title: 'mm', conv: v => v * 25.4, dec: 0 }, paper: { sync: false, events: [{ start: Math.max(a, S.win.a), end: S.win.b }] }, y: { beginAtZero: true, suggestedMax: 2 }, tooltipLabel: c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)} in` });
+  const dd = [];
+  if (S.snotel) {
+    for (const s of SNOTEL) { const l = line(s, 'SNWD', S.snowH && S.snowH[s.trip], 0); if (l) dd.push(l); }
+    const medD = ((S.snotel[MAIN_SNOTEL] || {}).SNWD || []).filter(x => x.t >= a && x.med != null);
+    if (medD.length) dd.push({ label: 'Independence Lake median', endLabel: 'median', data: medD.map(x => ({ x: x.t, y: x.med })), borderColor: INK3, backgroundColor: INK3, borderWidth: 1, borderDash: [1, 2.5] });
+  }
+  timeChart('p-snwd', dd, { showX: true, endLabels: true, decimate: false, xRange: [a, b], rightPad: 78, yTitle: 'Depth, in', y2: { title: 'cm', conv: v => v * 2.54, dec: 0 }, paper: { sync: false, events: [{ start: Math.max(a, S.win.a), end: S.win.b }] }, y: { beginAtZero: true, suggestedMax: 6 }, tooltipLabel: c => `${c.dataset.label}: ${c.parsed.y.toFixed(0)} in` });
+  const il = S.snotel && ((S.snotel[MAIN_SNOTEL] || {}).WTEQ || []).filter(x => x.t <= T + DAY && x.v != null).pop();
+  document.getElementById('cap3').innerHTML = `Water year to date at the SNOTEL sites. Dotted: Independence Lake's median for each date (NRCS 1991 to 2020 normals). The last point on each line is the newest hourly reading; the gray band is the selected window.`;
+  const tm = S.snotel && S.snotel[MAIN_SNOTEL] && S.snotel[MAIN_SNOTEL].timing;
+  let ks = '';
+  if (il) {
+    if (il.v < 0.5 && (!il.med || il.med < 0.5)) ks = `No lasting snowpack yet${tm && tm.medianOnset ? `; Independence Lake's median start date is ${tm.medianOnset.month}/${tm.medianOnset.day}` : ''}.`;
+    else ks = `Independence Lake ${il.v.toFixed(1)} in, ${il.med ? `${Math.round(il.v / il.med * 100)}% of median (${il.med.toFixed(1)} in)` : 'no median for this date'}${tm && tm.medianPeak ? `; the median peak is ${tm.medianPeak.value} in around ${tm.medianPeak.month}/${tm.medianPeak.day}` : ''}.`;
+  }
+  document.getElementById('kb-swe').innerHTML = ks ? `<li>${ks}</li>` : '';
+}
+
+/* CSV */
+function csvEsc(x) { const s = x == null ? '' : String(x); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; }
+function download(name, rows) { const blob = new Blob([rows.map(r => r.map(csvEsc).join(',')).join('\n') + '\n'], { type: 'text/csv' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+const stamp = () => `${localDate(S.win.a)}_to_${localDate(S.win.b)}`, iso = ms => new Date(ms).toISOString();
+const loc = ms => { const p = tzParts(ms); return `${localDate(ms)} ${String(p.h).padStart(2, '0')}:${String(p.mi).padStart(2, '0')} ${zoneAbbr(ms)}`; };
+function exportCSV(kind) {
+  if (kind === 'precip') { const rows = [['station', 'elev_ft', 'interval_start_utc', 'time_utc', 'time_local', 'mm', 'included', 'flags']]; for (const s of PRECIP_ALL) { const p = S.P[s.id]; if (p) for (const inc of p.incs) if (inc.t > S.win.a && inc.t <= S.win.b) rows.push([s.id, s.elev, iso(inc.t0), iso(inc.t), loc(inc.t), inc.mm.toFixed(3), inc.include ? 1 : 0, inc.flags.join(';')]); } download(`sagehen_precip_${stamp()}.csv`, rows); }
+  else if (kind === 'events') {
+    const rows = [['id', 'start_local', 'end_local', 'hours', 'centroid_local', ...GAUGES.flatMap(g => [`${g.id}_mm`, `${g.id}_meanT_C`]), 'radar_basin_mm', 'q_base_cfs', 'q_peak_cfs', 'q_dQ_cfs', 'q_lag_h', 'notes']];
+    S.events.forEach((e, i) => { const r = e.resp && e.resp.sagehen_q, rd = radarAmount(e.start - 30 * MIN, e.end + 30 * MIN); rows.push([`S${i + 1}`, loc(e.start), loc(e.end), ((e.end - e.start) / HOUR).toFixed(2), loc(e.centroid), ...GAUGES.flatMap(g => { const x = e.stats && e.stats[g.id]; return x ? [x.hasData ? x.tot.toFixed(3) : '', x.meanT == null ? '' : x.meanT.toFixed(2)] : ['', '']; }), rd ? rd.mm.toFixed(2) : '', r && r.base != null ? r.base.toFixed(3) : '', r && r.peak != null ? r.peak.toFixed(3) : '', r && r.dQ != null ? r.dQ.toFixed(3) : '', r && r.lag != null ? r.lag.toFixed(2) : '', r ? r.flags.join(';') : '']); });
+    download(`sagehen_storms_${stamp()}.csv`, rows);
+  } else if (kind === 'flow') { const rows = [['series', 'time_utc', 'time_local', 'value', 'units']]; if (S.usgs) for (const [k, u, f] of [['q', 'cfs', x => x], ['wt', 'degC', x => x], ['gh', 'ft', x => x]]) { const s = S.usgs[k]; s.t.forEach((t, i) => { if (t >= S.win.a && t <= S.win.b) rows.push([`usgs_10343500_${k}`, iso(t), loc(t), f(s.v[i]), u]); }); } download(`sagehen_flow_${stamp()}.csv`, rows); }
+  else if (kind === 'radar') { const rows = [['interval_start_utc', 'time_utc', 'time_local', 'mm', 'source']]; if (S.iem) for (const r of S.iem.rows) rows.push([iso(r.t0), iso(r.t), loc(r.t), r.mm.toFixed(2), S.iem.hourly ? 'Stage IV hourly (IEMRE)' : 'MRMS daily (IEMRE)']); download(`sagehen_radar_${stamp()}.csv`, rows); }
+  else if (kind === 'snotel') { const rows = [['site', 'triplet', 'date', 'element', 'value', 'median', 'units', 'qc_flag']]; if (S.snotel) for (const s of SNOTEL) { const rec = S.snotel[s.trip] || {}; for (const el of ['WTEQ', 'SNWD', 'PREC', 'PRCP', 'TOBS']) for (const x of rec[el] || []) rows.push([s.name, s.trip, x.date, el, x.v, x.med == null ? '' : x.med, el === 'TOBS' ? 'degF' : 'in', x.qc]); } download(`sagehen_snotel_${stamp()}.csv`, rows); }
+  else if (kind === 'geonor') { const rows = [['time_utc', 'time_local', 'frequency_hz', 'content_mm', 'used']]; if (S.geoRows) { const used = new Set(S.geo ? S.geo.obs : []); for (const r of S.geoRows) if (r.t >= S.win.a && r.t <= S.win.b) { const c = geonorMm(r.f); rows.push([iso(r.t), loc(r.t), r.f, c == null ? '' : c.toFixed(2), used.has(r.t) ? 1 : 0]); } } download(`sagehen_geonor_${stamp()}.csv`, rows); }
+}
+
+/* ======================================================================
+   Orchestration
+   ====================================================================== */
+function processAll() {
+  S.P = {};
+  if (S.syn) for (const s of PRECIP_ALL) if (s.mode !== 'geonor') S.P[s.id] = processPrecip(S.syn[s.id], s.mode);
+  if (S.geoRows) { S.geo = processGeonor(S.geoRows); const used = new Set(S.geo.obs); S.geo.badAt = S.geoRows.filter(r => !used.has(r.t)).map(r => r.t); S.P.SGHP = S.geo; }
+  if (S.syn && S.syn.SGHEN) S.syn.SGHP = { id: 'SGHP', t: S.syn.SGHEN.t, v: { air_temp: S.syn.SGHEN.v.air_temp } };
+  corroborate(S.P, Object.keys(S.P));
+  confirmProvisional();
+  if (S.syn) { for (const s of PRECIP_ALL) if (s.unheated) markMelt(S.P[s.id], S.syn[s.id]); S.fl = freezingLevel(S.syn, S.win.a, S.win.b); }
+  computeEvents();
+}
+// SNOTEL increments less than 24 h old, and single 0.1 in steps of any age, are kept only if a non-SNOTEL source
+// saw precipitation within 3 h: the field station gauge, any tipping bucket, or Stage IV radar at the basin center (0.5 mm or more).
+function confirmProvisional() {
+  const other = (t0, t) => PRECIP_ALL.some(g => g.mode !== 'ratchet' && S.P[g.id] && sumNoMelt(S.P[g.id], t0 - 3 * HOUR, t + 3 * HOUR) >= 0.5) ||
+    !!(S.iem && S.iem.hourly && S.iem.rows.some(r => r.mm >= 0.5 && r.t > t0 - 3 * HOUR && r.t0 < t + 3 * HOUR));
+  for (const g of PRECIP_ALL) if (g.mode === 'ratchet' && S.P[g.id]) for (const inc of S.P[g.id].incs) if (inc.flags.includes('provisional') || inc.flags.includes('one step')) { inc.include = other(inc.t0, inc.t); if (!inc.include && !inc.flags.includes('unconfirmed')) inc.flags.push('unconfirmed'); }
+}
+function safe(fn, name) { try { fn(); } catch (e) { console.error(name, e); } }
+function renderAll() {
+  document.querySelectorAll('#presets [data-p]').forEach(b => b.classList.toggle('on', b.dataset.p === S.win.preset));
+  document.getElementById('cs').value = localInput(S.win.a); document.getElementById('ce').value = localInput(S.win.b);
+  document.getElementById('meta').textContent = S.loadedAt ? `loaded ${fmtTime(S.loadedAt)}` : 'loading…';
+  safe(renderStorms, 'storms'); safe(renderSummary, 'summary'); safe(renderFig1, 'fig1'); safe(renderMap, 'map'); safe(renderElev, 'elev');
+  safe(renderStationTable, 'stations'); safe(renderSWE, 'swe'); safe(renderWT, 'wt'); safe(renderForecast, 'forecast');
+}
+function loadCams() { const v = Math.floor(Date.now() / (15 * MIN)); document.querySelectorAll('img[data-cam]').forEach(im => { im.src = `https://phenocam.nau.edu/data/latest/${im.dataset.cam}.jpg?v=${v}`; }); }
+let loadSeq = 0;
+async function loadAll() {
+  const seq = ++loadSeq;
+  if (S.win.preset !== 'custom') Object.assign(S.win, windowFromPreset(S.win.preset));
+  writeHash();
+  const { a, b } = S.win, now = Date.now();
+  const pa = Math.min(a - 12 * HOUR - MELT_LOOKBACK, b - DAY - HOUR, midnightLocal(Math.min(b, now)) - HOUR), fa = a - 12 * HOUR, fb = Math.min(now, b + 48 * HOUR);
+  S.view = null; S.radarTimes = []; document.querySelectorAll('.zoom-reset').forEach(x => x.classList.add('hidden'));
+  for (const k of ['syn', 'geo', 'usgs', 'snotel', 'iem', 'now', 'nws']) setStatus(k, 'loading', 'loading');
+  renderAll(); loadCams();
+  const done = () => { if (seq === loadSeq) { safe(processAll, 'process'); renderAll(); } };
+  const live = b >= now - 10 * MIN;
+  const jobs = [
+    loadSynoptic(pa, b).then(d => { if (seq !== loadSeq) return; S.syn = d; const have = SYN_IDS.filter(id => d[id]).length; setStatus('syn', have === SYN_IDS.length ? 'ok' : 'warn', `${have}/${SYN_IDS.length} stations`); }).catch(e => { if (seq === loadSeq) { S.syn = null; setStatus('syn', 'err', e.message); } }),
+    loadDendra(pa - 3 * HOUR, Math.min(b, now)).then(d => { if (seq !== loadSeq) return; S.geoRows = d; const lt = d.length ? d[d.length - 1].t : null; setStatus('geo', !d.length ? 'warn' : live && now - lt > 2 * HOUR ? 'warn' : 'ok', !d.length ? 'no data' : live ? `to ${fmtWhen(lt)}` : `${d.length} readings`); }).catch(e => { if (seq === loadSeq) { S.geoRows = null; S.geo = null; setStatus('geo', 'err', e.message); } }),
+    loadUSGS(fa, fb).then(d => { if (seq !== loadSeq) return; S.usgs = d; setStatus('usgs', d.q.t.length ? 'ok' : 'warn', d.q.t.length ? 'provisional' : 'no data'); }).catch(e => { if (seq === loadSeq) { S.usgs = null; setStatus('usgs', 'err', e.message); } }),
+    loadSnotelHourly(b - a <= 45 * DAY ? a : now - 3 * DAY, Math.min(b, now)).then(d => { if (seq === loadSeq) S.snowH = d; }).catch(() => { if (seq === loadSeq) S.snowH = null; }),
+    loadSnotel(a, b).then(d => { if (seq !== loadSeq) return; S.snotel = d; setStatus('snotel', 'ok', 'daily and hourly'); }).catch(e => { if (seq === loadSeq) { S.snotel = null; setStatus('snotel', 'err', e.message); } }),
+    loadIEM(a, Math.min(b, now)).then(d => { if (seq !== loadSeq) return; S.iem = d; setStatus('iem', d.rows.length ? 'ok' : 'warn', d.rows.length ? `${d.hourly ? 'Stage IV hourly' : 'MRMS daily'} to ${fmtWhen(d.last)}` : 'none for this window'); }).catch(e => { if (seq === loadSeq) { S.iem = null; setStatus('iem', 'err', e.message); } }),
+    loadNWS().then(d => { if (seq !== loadSeq) return; S.nws = d; setStatus('nws', 'ok', `issued ${fmtWhen(d.updated)}`); }).catch(e => { if (seq === loadSeq) { S.nws = null; setStatus('nws', 'err', e.message); } }),
+    (live ? radarNow() : Promise.resolve(null)).then(d => { if (seq !== loadSeq) return; S.now = d; setStatus('now', d ? 'ok' : 'warn', d ? fmtTime(d.t) : 'live window only'); }).catch(e => { if (seq === loadSeq) { S.now = null; setStatus('now', 'err', e.message); } }),
+  ];
+  jobs.forEach(j => j.then(done));
+  await Promise.allSettled(jobs);
+  if (seq !== loadSeq) return;
+  S.loadedAt = Date.now(); done();
+}
+
+/* ======================================================================
+   Self-test
+   ====================================================================== */
+async function runSelfTests() {
+  const out = document.getElementById('test-out'); out.classList.remove('hidden'); out.innerHTML = 'Running…';
+  const lines = []; let pass = 0, fail = 0;
+  const ok = (name, cond, detail = '') => { cond ? pass++ : fail++; lines.push(`<span class="${cond ? 'pass' : 'fail'}">${cond ? 'PASS' : 'FAIL'}</span> ${name}${detail ? ' · ' + detail : ''}`); };
+  const near = (x, y, tol = 0.0005) => x != null && Math.abs(x - y) <= tol;
+  const t0 = Date.UTC(2026, 0, 1), mk = (vals, key, stepMin = 10) => ({ t: vals.map((_, i) => t0 + i * stepMin * MIN), v: { [key]: vals } });
+  let p = processPrecip(mk([100, 100.254, 100.508, 0.5, 0.754], 'precip_accum'), 'accum');
+  ok('accum: diff, reset counts as 0', near(sumPrecip(p, t0 - 1, t0 + DAY).mm, 0.762) && p.incs.some(i => i.flags.includes('reset')));
+  p = processPrecip(mk([0.254, null, 0.508], 'precip_accum_ten_minute'), 'ten');
+  ok('ten-minute: sum, nulls are missing not zero', near(sumPrecip(p, t0 - 1, t0 + DAY).mm, 0.762) && p.obs.length === 2);
+  let P = { A: processPrecip(mk([0, 12.7, 0], 'precip_accum_ten_minute'), 'ten'), B: processPrecip(mk([0, 0, 0], 'precip_accum_ten_minute'), 'ten') };
+  corroborate(P, ['A', 'B']); ok('suspect > 10 mm/10 min excluded when uncorroborated', near(sumPrecip(P.A, t0 - 1, t0 + DAY).mm, 0));
+  p = processPrecip(mk([0, 0, 0], 'precip_accum_ten_minute'), 'ten');
+  ok('no reports => nodata; zeros => 0; late => partial', sumPrecip(p, t0 + DAY, t0 + 2 * DAY).status === 'nodata' && sumPrecip(p, t0 - 1, t0 + 20 * MIN).mm === 0 && sumPrecip(p, t0 - 1, t0 + 2 * HOUR).status === 'partial');
+  p = processPrecip(mk([500, 502.54, 500, 502.54, 505.08, 505.08, 502.54, 505.08], 'precip_accum', 60), 'ratchet');
+  ok('SNOTEL: read through the next 24 h minimum, so a 2.54 mm flicker counts once it holds', near(sumPrecip(p, t0 - 1, t0 + DAY).mm, 5.08, 0.001), `${sumPrecip(p, t0 - 1, t0 + DAY).mm} mm`);
+  p = processPrecip(mk([500, 502.54, 500, 500, 500], 'precip_accum', 60), 'ratchet');
+  ok('SNOTEL: a one hour blip that falls straight back is not counted', near(sumPrecip(p, t0 - 1, t0 + DAY).mm, 0));
+  p = processPrecip(mk([1200, 1202.54, 1202.54, 0, 2.54, 5.08], 'precip_accum', 60), 'ratchet');
+  ok('SNOTEL: October season reset, then counting from the new zero', near(sumPrecip(p, t0 - 1, t0 + DAY).mm, 5.08, 0.001) && p.partialMs === 70 * MIN);
+  p = processPrecip(mk(Array.from({ length: 96 }, (_, h) => [0, 2.54, 5.08, 7.62, 10.16, 7.62, 5.08, 2.54][Math.floor((h % 24) / 3)]), 'precip_accum', 60), 'ratchet');
+  const firm = p.incs.filter(x => !x.flags.includes('provisional')).reduce((s2, x) => s2 + x.mm, 0);
+  ok('SNOTEL: a daily thermal swing of 0 to 10 mm counts nothing (the last day is only provisional)', firm === 0 && p.incs.every(x => x.flags.includes('provisional')), `${firm} mm firm`);
+  p = processPrecip(mk([...Array(30).fill(100), ...Array(40).fill(112.7)], 'precip_accum', 60), 'ratchet');
+  ok('SNOTEL: a real 12.7 mm step that holds counts, timed when it fell', near(sumPrecip(p, t0 - 1, t0 + 5 * DAY).mm, 12.7, 0.001) && p.incs[0].t === t0 + 30 * HOUR);
+  ok('Pacific midnights across DST', midnightLocal(Date.UTC(2026, 10, 1, 18)) === Date.UTC(2026, 10, 1, 7) && midnightLocal(Date.UTC(2026, 10, 2, 18)) === Date.UTC(2026, 10, 2, 8) && midnightLocal(Date.UTC(2026, 2, 8, 18)) === Date.UTC(2026, 2, 8, 8) && midnightLocal(Date.UTC(2026, 2, 9, 18)) === Date.UTC(2026, 2, 9, 7));
+  ok('water year start', waterYearStart(Date.UTC(2027, 0, 15)) === Date.UTC(2026, 9, 1, 7));
+  ok('Geonor calibration: 1,445.8 Hz = 74.41 mm (Python check of the 2017 to 2020 fit)', near(geonorMm(1445.8), 74.4092, 0.001) && geonorMm(400) == null);
+  const fOf = mm => { const [a2, b2, c2] = GEONOR_C; return (-b2 + Math.sqrt(b2 * b2 - 4 * a2 * (c2 - mm))) / (2 * a2); };
+  const geoRun = mmList => processGeonor(mmList.map((m, i) => ({ t: t0 + i * 10 * MIN, f: m == null ? null : fOf(m) })));
+  let g = geoRun([...Array(12).fill(100), ...Array.from({ length: 30 }, (_, i) => 100 + (i + 1) * 0.2), ...Array(12).fill(106)]);
+  ok('Geonor: a steady 6 mm rise counts about 6 mm', near(sumPrecip(g, t0 - 1, t0 + DAY).mm, 6, 0.3), `${sumPrecip(g, t0 - 1, t0 + DAY).mm} mm`);
+  g = geoRun(Array.from({ length: 60 }, (_, i) => 100 + (i % 2 ? 0.2 : -0.2)));
+  ok('Geonor: ±0.2 mm noise counts nothing', sumPrecip(g, t0 - 1, t0 + DAY).mm === 0);
+  g = geoRun([...Array(12).fill(380), ...Array(24).fill(90), ...Array.from({ length: 10 }, (_, i) => 90 + (i + 1) * 0.5), ...Array(10).fill(95)]);
+  ok('Geonor: a drain resets the level; the 5 mm after it counts', near(sumPrecip(g, t0 - 1, t0 + DAY).mm, 5, 0.3) && g.resets.some(x => x.from - x.to > GEO_DRAIN), `${sumPrecip(g, t0 - 1, t0 + DAY).mm} mm`);
+  g = geoRun([...Array(12).fill(70), ...Array.from({ length: 30 }, (_, i) => i % 3 === 0 ? 70 : i % 3 === 1 ? 45 : 110), ...Array(30).fill(70)]);
+  ok('Geonor: a fault swinging tens of mm is set aside and counts nothing', sumPrecip(g, t0 - 1, t0 + 2 * DAY).mm === 0 && g.bad >= 30, `${g.bad} set aside`);
+  const tipAt = h => ({ t0: t0 + h * HOUR - 10 * MIN, t: t0 + h * HOUR, mm: 0.508, flags: [], include: true });
+  P = { X: { obs: [], incs: [tipAt(0), tipAt(2.9), tipAt(6.1)] }, Y: { obs: [], incs: [tipAt(6.2)] } };
+  const r = detectEvents(P, ['X', 'Y'], 3 * HOUR, 1.0);
+  ok('grouping: 2.9 h joins, 3.2 h splits, < 1 mm dropped', r.events.length === 1 && r.minor.length === 1);
+  const sQ = { t: [t0, t0 + HOUR, t0 + 3 * HOUR, t0 + 5 * HOUR], v: [10, 20, 30, 10] };
+  ok('time weighted mean', near(twMean(sQ, t0, t0 + 2 * HOUR), 15, 1e-9));
+  const fr = flowResponse({ start: t0 + 2 * HOUR, end: t0 + 2.5 * HOUR, centroid: t0 + 2.25 * HOUR }, null, { ...sQ, res: 0.33, ice: false });
+  ok('response: baseline, peak, lag, short-baseline flag', near(fr.base, 15, 1e-9) && fr.peak === 30 && near(fr.lag, 0.75, 1e-9) && fr.flags.includes('baseline under 6 h of data'));
+  const q = [9.55, 9.87, 9.55, 9.87, 0.71, 9.87, 9.55], qc = qcFlow({ t: q.map((_, i) => t0 + i * 5 * MIN), v: q });
+  ok('flow QC: single dropout removed', qc.v.length === 6 && qc.spikes.length === 1);
+  ok('snow depth: stuck sensor hidden after 48 h unchanged', qcSnowDepth({ id: 'X', t: [0, 24, 49].map(h => t0 + h * HOUR), v: { snow_depth: [1371.6, 1371.6, 1371.6] } }).every(x => x.qc == null && x.flag === 'stuck sensor'));
+  const flt = (() => { const syn = {}, h = Date.UTC(2026, 0, 2, 12); for (const id of TEMP_IDS) syn[id] = { t: [h - 30 * MIN], v: { air_temp: [10 - (STN[id].elev - 6000) * 0.002] } }; return freezingLevel(syn, h - 30 * MIN, h)[0]; })();
+  ok('rain line (1 °C) from a 2 °C per 1,000 ft profile = 10,500 ft', flt && near(flt.fl, 10500, 1));
+  ok('radar palette inverts (index 133 = 34 dBZ)', rgbToIdx(...PAL.arr[133]) === 133 && idxToDbz(133) === 34);
+  ok('basin polygon holds the Independence Lake SNOTEL, not Independence Camp', inPoly(-120.31342, 39.42752, BASIN) && !inPoly(-120.29367, 39.45269, BASIN));
+  lines.push(''); lines.push('Live checks:');
+  try {
+    const rows = await loadDendra(Date.UTC(2025, 11, 20, 8), Date.UTC(2025, 11, 22, 8)), gg = processGeonor(rows);
+    const day = sumPrecip(gg, Date.UTC(2025, 11, 21, 8), Date.UTC(2025, 11, 22, 8)).mm;
+    ok('Field station gauge, 21 Dec 2025 (PST day): about 100 mm (Python check 99.97; NWS observer 4.06 in = 103 mm)', near(day, 100, 4), `got ${day.toFixed(2)} mm from ${rows.length} readings`);
+  } catch (e) { ok('Dendra fetch', false, e.message); }
+  try { const d = await loadDendra(Date.now() - 6 * HOUR, Date.now()); const lt = d.length ? d[d.length - 1].t : 0; ok('Field station gauge reported within 1 h', Date.now() - lt < HOUR, d.length ? `last ${ago(lt)}` : 'none'); } catch (e) { ok('Field station gauge reported within 1 h', false, e.message); }
+  // The gauge reports by satellite, usually about 1 h behind and at times 2 to 3 h.
+  try { const u = await loadUSGS(Date.now() - 12 * HOUR, Date.now()); ok('USGS 10343500 flow within 4 h', u.q.t.length && Date.now() - u.q.t[u.q.t.length - 1] < 4 * HOUR, u.q.t.length ? `${cfs(u.q.v[u.q.v.length - 1])} cfs ${ago(u.q.t[u.q.t.length - 1])}` : 'no reports in the last 12 h'); } catch (e) { ok('USGS 10343500 flow within 4 h', false, e.message); }
+  try { const m = await loadIEM(Date.now() - DAY, Date.now()); ok('Stage IV hourly within 6 h', m.last && Date.now() - m.last < 6 * HOUR, m.last ? `newest hour ends ${ago(m.last)}` : 'none'); } catch (e) { ok('Stage IV hourly within 6 h', false, e.message); }
+  out.innerHTML = `<b>${pass} passed, ${fail} failed</b>\n` + lines.join('\n');
+  return { pass, fail };
+}
+
+/* ======================================================================
+   Wiring
+   ====================================================================== */
+function initUI() {
+  document.getElementById('det-boxes').innerHTML = GAUGES.map(g => `<label><input type="checkbox" value="${g.id}" ${S.det.includes(g.id) ? 'checked' : ''}> ${g.id}</label>`).join(' ');
+  document.querySelectorAll('#presets [data-p]').forEach(b => b.onclick = () => { S.win.preset = b.dataset.p; loadAll(); });
+  document.getElementById('refresh').onclick = () => loadAll();
+  document.getElementById('apply-custom').onclick = () => { const a = parseLocalInput(document.getElementById('cs').value), b = parseLocalInput(document.getElementById('ce').value); if (a == null || b == null || b <= a) { alert('Pick a start before the end.'); return; } S.win = { preset: 'custom', a, b }; loadAll(); };
+  document.getElementById('apply-storm').onclick = () => { const det = [...document.querySelectorAll('#det-boxes input:checked')].map(x => x.value); if (!det.length) { alert('Pick at least one gauge.'); return; } S.det = det; S.gapH = Math.max(0.5, +document.getElementById('gap-h').value || 3); S.minMm = Math.max(0.25, +document.getElementById('min-mm').value || 1); safe(processAll, 'process'); renderAll(); };
+  document.getElementById('show-radar').onchange = () => safe(renderFig1, 'fig1');
+  document.getElementById('map-radar').onchange = () => updateRadarLayer();
+  document.getElementById('radar-t').oninput = e => { const t = S.radarTimes[+e.target.value]; if (t != null) { S.radarT = t; updateRadarLayer(); } };
+  document.querySelectorAll('[data-export]').forEach(b => b.onclick = () => exportCSV(b.dataset.export));
+  document.getElementById('run-tests').onclick = () => runSelfTests();
+  document.querySelectorAll('.zoom-reset').forEach(b => b.onclick = () => { setView(null); document.querySelectorAll('#t-storms tr.sel').forEach(x => x.classList.remove('sel')); });
+  let playT = null;
+  document.getElementById('radar-play').onclick = e => {
+    const b = e.currentTarget;
+    if (playT) { clearInterval(playT); playT = null; b.textContent = '▶'; return; }
+    if (!S.radarTimes.length) return;
+    const sl = document.getElementById('radar-t'); let i = +sl.value; if (i >= S.radarTimes.length - 1) i = 0;
+    b.textContent = '❚❚';
+    playT = setInterval(() => { i++; if (i >= S.radarTimes.length) { clearInterval(playT); playT = null; b.textContent = '▶'; return; } sl.value = i; S.radarT = S.radarTimes[i]; updateRadarLayer(); }, 600);
+  };
+  document.getElementById('sources').innerHTML = [
+    `Sources. Weighing gauge: <a href="${DENDRA_LINK}" target="_blank" rel="noopener">UC Natural Reserve System, Sagehen Creek station (Dendra)</a>. Weather and other gauges: ${SYN_IDS.map(id => `<a href="${mesoLink(id)}" target="_blank" rel="noopener">${id}</a>`).join(', ')} via the <a href="https://docs.synopticdata.com/services/time-series" target="_blank" rel="noopener">Synoptic API</a>.`,
+    `Streamflow: <a href="${USGS_LINK}" target="_blank" rel="noopener">USGS 10343500</a>. Snowpack: NRCS SNOTEL ${SNOTEL.map(s => `<a href="${snotelLink(s.num)}" target="_blank" rel="noopener">${s.name}</a>`).join(', ')} via <a href="https://wcc.sc.egov.usda.gov/awdbRestApi/swagger-ui/index.html" target="_blank" rel="noopener">AWDB</a>.`,
+    `Radar: <a href="https://mesonet.agron.iastate.edu/iemre/" target="_blank" rel="noopener">IEM IEMRE</a> (NCEP Stage IV, NOAA MRMS) and the <a href="https://mesonet.agron.iastate.edu/docs/nexrad_mosaic/" target="_blank" rel="noopener">IEM NEXRAD mosaic</a>. Forecast: <a href="https://www.weather.gov/documentation/services-web-api" target="_blank" rel="noopener">NWS gridded forecast</a> (Reno). Cameras: <a href="https://phenocam.nau.edu/webcam/sites/sagehen/" target="_blank" rel="noopener">PhenoCam Network</a>. Watershed: <a href="https://waterdata.usgs.gov/blog/nldi-intro/" target="_blank" rel="noopener">USGS NLDI</a>. Hillshade: Esri.`,
+    `Code: <a href="https://github.com/Tyler-Y42/Sagehen.Hydromet" target="_blank" rel="noopener">github.com/Tyler-Y42/Sagehen.Hydromet</a>. Source research: RESEARCH.md in the repository.`,
+  ].join('<br>');
+}
+readHash(); initUI(); loadAll();
+if (/[?&]selftest/.test(location.search)) { document.querySelector('.drawer').open = true; document.getElementById('methods-box').open = true; runSelfTests(); }
+window.addEventListener('hashchange', () => { const before = JSON.stringify(S.win); readHash(); if (JSON.stringify(S.win) !== before) loadAll(); });
+let _rz = null; window.addEventListener('resize', () => { clearTimeout(_rz); _rz = setTimeout(() => { safe(renderFig1, 'fig1'); safe(renderForecast, 'forecast'); safe(renderWT, 'wt'); }, 250); });
+</script>
+</body>
+</html>
