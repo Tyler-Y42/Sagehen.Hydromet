@@ -1016,6 +1016,17 @@ function maxIn(series, a, b) { let m = null, at = null; for (const x of series) 
 function sumIn(series, a, b) { let s = 0, end = null; for (const x of series) { const o = overlap(x, a, b); if (o > 0) { s += x.v * o / (x.b - x.a); end = Math.max(end || 0, Math.min(x.b, b)); } } return { mm: s, end }; }
 function monthsBetween(a, b) { const out = []; const d = new Date(a); let y = d.getUTCFullYear(), m = d.getUTCMonth() + 1; const e = new Date(b), ey = e.getUTCFullYear(), em = e.getUTCMonth() + 1; while (y < ey || (y === ey && m <= em)) { out.push(`${y}-${String(m).padStart(2, '0')}`); m++; if (m > 12) { m = 1; y++; } } return out; }
 
+// Fire camera heading: AlertWildfire's public camera list (CORS open) carries each camera's current azimuth and field of view.
+const AWF_LIST = 'https://s3-us-west-2.amazonaws.com/awf-data-public-prod/all-cameras.json', FIRECAM_SLUG = 'ca-sage-hen-1';
+async function loadFirecam() {
+  const d = await fetchJSON(`${AWF_LIST}?_=${Math.floor(Date.now() / (5 * MIN))}`, { tries: 2, timeout: 30000 });
+  const f = (d.features || []).find(x => x.properties && x.properties.camera_slug === FIRECAM_SLUG);
+  if (!f) throw new Error('camera not in list');
+  const p = f.properties, az = +p.az_current;
+  return { az: isFinite(az) ? az : null, fov: +p.fov || null, at: Date.parse(p.last_update_at) || null };
+}
+const compass = az => ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'][Math.round(((az % 360) + 360) % 360 / 22.5) % 16];
+
 /* ======================================================================
    PhenoCam greenness and snow (daily, via the Alta data branch)
    ====================================================================== */
@@ -1066,7 +1077,7 @@ function snowRuns(days) {
    ====================================================================== */
 const S = {
   win: { preset: '72h', a: 0, b: 0 }, det: ['SGHP', 'ILKC1', 'ICPC1'], gapH: 3, minMm: 1.0,
-  syn: null, geo: null, geoRows: null, P: {}, pheno: null, snowH: null, usgs: null, snotel: null, iem: null, now: null, nws: null,
+  syn: null, geo: null, geoRows: null, P: {}, pheno: null, firecam: null, snowH: null, usgs: null, snotel: null, iem: null, now: null, nws: null,
   status: {}, events: [], minor: [], fl: [], hoverX: null, loadedAt: null, radarT: null, radarTimes: [], view: null, fview: null, drag: null, selStorm: null,
 };
 function windowFromPreset(p) { const now = Date.now(), spans = { '24h': DAY, '72h': 3 * DAY, '7d': 7 * DAY, '30d': 30 * DAY }; return p === 'wy' ? { a: waterYearStart(now), b: now } : { a: now - (spans[p] || 3 * DAY), b: now }; }
@@ -1610,6 +1621,16 @@ function renderMap() {
     label(L.marker([f.lat, f.lon], { icon: ic }).bindPopup(`<b>${f.name}</b><br>${f.note}, ${ft(f.elev)} ft<br>${s && s.t.length ? `${cfs(s.v[s.v.length - 1])} cfs at ${fmtWhen(s.t[s.t.length - 1])}<br>` : ''}<a href="${f.link}" target="_blank" rel="noopener">USGS site page</a>`), 'USGS gauge', 'bottom').addTo(stationLayer);
   }
   for (const c of CAMS) {
+    if (c.fire && S.firecam && S.firecam.az != null) {
+      const { az, fov } = S.firecam, half = (fov || 60) / 2, R = 7; // km drawn for the wedge
+      const pt = (b, d) => [c.lat + d * Math.cos(b * Math.PI / 180) / 111, c.lon + d * Math.sin(b * Math.PI / 180) / (111 * Math.cos(c.lat * Math.PI / 180))];
+      const wedge = [[c.lat, c.lon]]; for (let b = az - half; b <= az + half + 0.1; b += half / 6) wedge.push(pt(b, R));
+      L.polygon(wedge, { color: RADAR, weight: 0.8, opacity: 0.6, fillColor: RADAR, fillOpacity: 0.08, interactive: false }).addTo(stationLayer);
+      const arrow = L.divIcon({ className: '', html: `<svg width="26" height="26" viewBox="0 0 26 26" style="transform:rotate(${az}deg)"><path d="M13 2 L20 22 L13 17 L6 22 Z" fill="${RADAR}" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>`, iconSize: [26, 26], iconAnchor: [13, 13] });
+      const img = `https://cameras.alertcalifornia.org/public-camera-data/${c.id}/latest-frame.jpg`;
+      label(L.marker([c.lat, c.lon], { icon: arrow, zIndexOffset: 500 }).bindPopup(`<b>${c.name}</b> (ALERTWildfire, 8,389 ft)<br>Looking ${compass(az)} (${Math.round(az)}°)${fov ? `, ${Math.round(fov)}° wide` : ''}${S.firecam.at ? `, as of ${fmtWhen(S.firecam.at)}` : ''}<br><img src="${img}" style="width:220px;display:block;margin-top:4px" alt="${c.name}"><a href="${c.link}" target="_blank" rel="noopener">Live viewer</a>`), `Fire camera, looking ${compass(az)}`, 'bottom').addTo(stationLayer);
+      continue;
+    }
     const ic = L.divIcon({ className: '', html: `<svg width="9" height="9"><rect x="1.5" y="1.5" width="6" height="6" fill="#111" transform="rotate(45 4.5 4.5)"/></svg>`, iconSize: [9, 9], iconAnchor: [4.5, 4.5] });
     const img = c.fire ? `https://cameras.alertcalifornia.org/public-camera-data/${c.id}/latest-frame.jpg` : `https://phenocam.nau.edu/data/latest/${c.id}.jpg`;
     const mk = L.marker([c.lat, c.lon], { icon: ic }).bindPopup(`<b>${c.name}</b> (${c.fire ? 'ALERTWildfire, 8,389 ft' : `PhenoCam ${c.id}`})<br><img src="${img}" style="width:220px;display:block;margin-top:4px" alt="${c.name}">${c.fire ? `<a href="${c.link}" target="_blank" rel="noopener">Live viewer</a>` : ''}`);
@@ -1667,7 +1688,7 @@ function renderElev() {
   };
   if (charts['p-elev']) charts['p-elev'].destroy();
   charts['p-elev'] = new Chart(document.getElementById('p-elev'), cfg);
-  document.getElementById('cap2').innerHTML = `Dashed outline: Sagehen Creek above USGS 10343500 (NLDI basin, 27.7 km²). Filled symbols measure precipitation; open circles temperature and wind only; triangles are SNOTEL; the square is the stream gauge; diamonds are cameras. Gray symbols are Truckee area context. Tap a station for its latest values and source. The slider steps through radar mosaic frames (5 min) for the last 2 h, or for a storm you click.`;
+  document.getElementById('cap2').innerHTML = `Dashed outline: Sagehen Creek above USGS 10343500 (NLDI basin, 27.7 km²). Filled symbols measure precipitation; open circles temperature and wind only; triangles are SNOTEL; the square is the stream gauge; diamonds are cameras. Gray symbols are Truckee area context. The orange arrow is the fire camera, pointing where it looks now, with its field of view shaded (it pans, so this changes). Tap a station for its latest values and source. The slider steps through radar mosaic frames (5 min) for the last 2 h, or for a storm you click.`;
   document.getElementById('cap-elev').innerHTML = `Triangles are SNOTEL storage gauges, circles the field station weighing gauge and the tipping buckets (unheated buckets undercatch snow). Where names would overlap, tap a point. Winter storms usually build totals with elevation, toward Independence Lake on the crest.`;
   const ok = pts.filter(p => isNear(p.s) && !p.s.unheated);
   let key = '';
@@ -1868,6 +1889,7 @@ async function loadAll() {
     loadSnotel(a, b).then(d => { if (seq !== loadSeq) return; S.snotel = d; setStatus('snotel', 'ok', 'daily and hourly'); }).catch(e => { if (seq === loadSeq) { S.snotel = null; setStatus('snotel', 'err', e.message); } }),
     loadIEM(a, Math.min(b, now)).then(d => { if (seq !== loadSeq) return; S.iem = d; setStatus('iem', d.rows.length ? 'ok' : 'warn', d.rows.length ? `${d.hourly ? 'Stage IV hourly' : 'MRMS daily'} to ${fmtWhen(d.last)}` : 'none for this window'); }).catch(e => { if (seq === loadSeq) { S.iem = null; setStatus('iem', 'err', e.message); } }),
     loadNWS().then(d => { if (seq !== loadSeq) return; S.nws = d; setStatus('nws', 'ok', `issued ${fmtWhen(d.updated)}`); }).catch(e => { if (seq === loadSeq) { S.nws = null; setStatus('nws', 'err', e.message); } }),
+    loadFirecam().then(d => { if (seq === loadSeq) S.firecam = d; }).catch(() => { if (seq === loadSeq) S.firecam = null; }),
     (S.pheno ? Promise.resolve(S.pheno) : loadPheno()).then(d => { if (seq !== loadSeq) return; S.pheno = d; const lt = Math.max(...Object.values(d.sites).map(s => s.d.length ? dayStart(s.d[s.d.length - 1]) : 0)); setStatus('pheno', Date.now() - lt > 6 * DAY ? 'warn' : 'ok', `daily to ${dayTxt(lt)}`); }).catch(e => { if (seq === loadSeq) { S.pheno = null; setStatus('pheno', 'err', e.message); } }),
     (live ? radarNow() : Promise.resolve(null)).then(d => { if (seq !== loadSeq) return; S.now = d; setStatus('now', d ? 'ok' : 'warn', d ? fmtTime(d.t) : 'live window only'); }).catch(e => { if (seq === loadSeq) { S.now = null; setStatus('now', 'err', e.message); } }),
   ];
