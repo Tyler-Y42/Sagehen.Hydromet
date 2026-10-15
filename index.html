@@ -160,6 +160,7 @@
   .radar-ctl { flex-wrap: wrap; } .radar-ctl .lbl { white-space: normal; }
   @media (max-width: 600px) { .cbox.side.fc { height: 170px; } }
   .cams { margin-top: 8px; }
+  .row2.pheno { margin-top: 4px; }
   .camgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
   @media (max-width: 600px) { .camgrid { grid-template-columns: minmax(0, 1fr); } }
   .camgrid figure { margin: 0; min-width: 0; }
@@ -269,6 +270,11 @@
     <figure><a href="https://phenocam.nau.edu/webcam/sites/sagehen3/" target="_blank" rel="noopener"><img data-cam="sagehen3" alt="Sagehen fen camera 3" loading="lazy"></a><figcaption><b>Fen meadow</b>, second view</figcaption></figure>
     <figure><a href="https://cameras.alertcalifornia.org/public-camera-data/Axis-Sagehen5/latest-frame.jpg" target="_blank" rel="noopener"><img data-alert="Axis-Sagehen5" alt="Sagehen Tower 5 fire camera" loading="lazy"></a><figcaption><b>Tower 5, top of the watershed</b> (8,389 ft), ALERTCalifornia fire camera; it pans, so the view changes</figcaption></figure>
   </div>
+  <div class="row2 pheno">
+    <div><div class="plab"><b class="pl">k</b><span class="pt">Greenness</span><span class="u">green share of the image (GCC, 90th percentile)</span></div><ul class="kb" id="kb-k"></ul><div class="cbox side"><canvas id="p-gcc"></canvas></div></div>
+    <div><div class="plab"><b class="pl">l</b><span class="pt">Snow on the meadow</span><span class="u">in</span></div><ul class="kb" id="kb-l"></ul><div class="cbox side"><canvas id="p-psnow"></canvas></div></div>
+  </div>
+  <p class="cap" id="cap-pheno"></p>
   <p class="cap" id="cap-cam">Latest image from each camera; the time is printed on each image (PST on the PhenoCams, every 30 min in daylight; Pacific time on the fire camera, about every minute). Snow on the ground, rime and frost show here before they show in the numbers. PhenoCams run by the Kirchner lab (ETH Zurich) at the field station flux tower; the fire camera by UC San Diego and the Nevada Seismological Laboratory. Tap a PhenoCam for its archive. The fire camera is not listed in the public ALERTCalifornia or AlertWildfire viewers, so tapping it opens its newest full size image (1920 × 1080).</p>
 </div>
 
@@ -405,6 +411,12 @@ const snotelLink = n => `https://wcc.sc.egov.usda.gov/nwcc/site?sitenum=${n}`;
 const BASIN = [[-120.2598,39.4077],[-120.2613,39.4067],[-120.2628,39.4091],[-120.2668,39.4104],[-120.2776,39.4083],[-120.281,39.4085],[-120.2853,39.4103],[-120.2906,39.4095],[-120.2945,39.4113],[-120.299,39.412],[-120.3004,39.4131],[-120.3029,39.4136],[-120.3079,39.4117],[-120.3103,39.412],[-120.3141,39.4115],[-120.3178,39.4138],[-120.3153,39.4204],[-120.316,39.4244],[-120.3111,39.4305],[-120.3073,39.4312],[-120.304,39.4346],[-120.2983,39.4381],[-120.2876,39.4434],[-120.2877,39.4443],[-120.2851,39.4469],[-120.2802,39.4503],[-120.2786,39.454],[-120.2728,39.4523],[-120.2698,39.4527],[-120.2669,39.4552],[-120.2662,39.4626],[-120.265,39.4635],[-120.2637,39.4634],[-120.2611,39.4607],[-120.2562,39.458],[-120.2518,39.4588],[-120.248,39.4574],[-120.2452,39.4545],[-120.244,39.4521],[-120.2423,39.4513],[-120.2416,39.4472],[-120.2425,39.4458],[-120.2454,39.445],[-120.2434,39.4375],[-120.2416,39.4354],[-120.2379,39.4337],[-120.2369,39.4313],[-120.2396,39.4279],[-120.2348,39.4113],[-120.2355,39.4091],[-120.2407,39.4102],[-120.2441,39.4091],[-120.2491,39.4052],[-120.251,39.4047],[-120.2561,39.409],[-120.2598,39.4077]];
 const CENTER = { lat: 39.432, lon: -120.272 };
 const NWS_GRID = 'https://api.weather.gov/gridpoints/REV/28,105';
+// PhenoCam daily summaries, copied by the Alta Hydromet Action (PhenoCam's CSVs send no CORS header).
+const PHENO_URL = 'https://raw.githubusercontent.com/Tyler-Y42/Alta.Hydromet/data/sagehen/phenocam.json';
+// Snow on the meadow: the blue share of the ROI, b/(r+g+b), averaged over the two meadow cameras. Against Independence
+// Creek SNOTEL depth (1 in or more, 2 mi N, 6,440 ft) over 2017 to 2026 a cutoff of 0.32 agreed on 96% of 3,218 days;
+// most disagreements are dustings in Oct to Dec and the meadow melting out at a different pace in April.
+const PHENO_SNOW_BCC = 0.32, PHENO_MEADOW = ['sagehen2', 'sagehen3'];
 const CAMS = [
   { id: 'sagehen', lat: 39.4315, lon: -120.2398, name: 'Above canopy camera' },
   { id: 'sagehen2', lat: 39.4307, lon: -120.2407, name: 'Fen camera' },
@@ -998,11 +1010,39 @@ function sumIn(series, a, b) { let s = 0, end = null; for (const x of series) { 
 function monthsBetween(a, b) { const out = []; const d = new Date(a); let y = d.getUTCFullYear(), m = d.getUTCMonth() + 1; const e = new Date(b), ey = e.getUTCFullYear(), em = e.getUTCMonth() + 1; while (y < ey || (y === ey && m <= em)) { out.push(`${y}-${String(m).padStart(2, '0')}`); m++; if (m > 12) { m = 1; y++; } } return out; }
 
 /* ======================================================================
+   PhenoCam greenness and snow (daily, via the Alta data branch)
+   ====================================================================== */
+async function loadPheno() {
+  const j = await fetchJSON(PHENO_URL + '?v=' + Math.floor(Date.now() / (30 * MIN)), { timeout: 60000 });
+  const d0 = localDate(Date.now() - 400 * DAY), d1 = localDate(Date.now());
+  let ick = [];
+  try { const s = await fetchJSON(`${AWDB}/data?stationTriplets=540:CA:SNTL&elements=SNWD&duration=DAILY&beginDate=${d0}&endDate=${d1}`, { timeout: 60000 }); ick = ((s[0] && s[0].data[0] && s[0].data[0].values) || []).filter(x => x.value != null).map(x => { const [y, m, dd] = x.date.split('-').map(Number); return { t: Date.UTC(y, m - 1, dd + 1, 8), v: x.value }; }); } catch (e) { /* the snow panel still shows the camera call */ }
+  return { ...j, ick };
+}
+const dayStart = ds => { const [y, m, d] = ds.split('-').map(Number); return localToUtc(y, m, d); };
+const dayTxt = t => fmtDT(t, { wd: false }).replace(/ \d+:\d+ [AP]M$/, '');
+// Daily snow call from the meadow cameras: { d, t, bcc, snow } for every date either camera has.
+function phenoSnowDays(P) {
+  const by = new Map();
+  for (const k of PHENO_MEADOW) { const s = P.sites[k]; if (!s) continue; s.d.forEach((d, i) => { const v = s.bcc[i]; if (v == null || !s.n[i]) return; const o = by.get(d) || []; o.push(v); by.set(d, o); }); }
+  return [...by].sort((x, y) => x[0] < y[0] ? -1 : 1).map(([d, v]) => { const m = v.reduce((p, q) => p + q, 0) / v.length; return { d, t: dayStart(d), bcc: m, snow: m >= PHENO_SNOW_BCC }; });
+}
+function snowRuns(days) {
+  const runs = []; let cur = null;
+  for (const x of days) {
+    if (x.snow && cur && x.t - cur.end <= HOUR) cur.end = x.t + DAY;
+    else if (x.snow) { if (cur) runs.push(cur); cur = { start: x.t, end: x.t + DAY }; }
+  }
+  if (cur) runs.push(cur);
+  return runs;
+}
+
+/* ======================================================================
    State
    ====================================================================== */
 const S = {
   win: { preset: '72h', a: 0, b: 0 }, det: ['SGHP', 'ILKC1', 'ICPC1'], gapH: 3, minMm: 1.0,
-  syn: null, geo: null, geoRows: null, P: {}, snowH: null, usgs: null, snotel: null, iem: null, now: null, nws: null,
+  syn: null, geo: null, geoRows: null, P: {}, pheno: null, snowH: null, usgs: null, snotel: null, iem: null, now: null, nws: null,
   status: {}, events: [], minor: [], fl: [], hoverX: null, loadedAt: null, radarT: null, radarTimes: [], view: null, fview: null, drag: null, selStorm: null,
 };
 function windowFromPreset(p) { const now = Date.now(), spans = { '24h': DAY, '72h': 3 * DAY, '7d': 7 * DAY, '30d': 30 * DAY }; return p === 'wy' ? { a: waterYearStart(now), b: now } : { a: now - (spans[p] || 3 * DAY), b: now }; }
@@ -1015,7 +1055,7 @@ function readHash() {
   const w = h.get('w') || '72h'; S.win = { preset: w, ...windowFromPreset(w) };
 }
 function writeHash() { const st = x => localInput(x).replace(/[-T:]/g, ''); history.replaceState(null, '', location.pathname + location.search + '#' + (S.win.preset === 'custom' ? `s=${st(S.win.a)}&e=${st(S.win.b)}` : `w=${S.win.preset}`)); }
-const SRC = { syn: ['MesoWest', 'https://mesowest.utah.edu/'], geo: ['Field station gauge', DENDRA_LINK], usgs: ['USGS', USGS_LINK], snotel: ['SNOTEL', 'https://nwcc-apps.sc.egov.usda.gov/imap/'], iem: ['Radar amounts', 'https://mesonet.agron.iastate.edu/iemre/'], now: ['Radar now', 'https://mesonet.agron.iastate.edu/docs/nexrad_mosaic/'], nws: ['NWS forecast', 'https://forecast.weather.gov/MapClick.php?lat=39.432&lon=-120.272'] };
+const SRC = { syn: ['MesoWest', 'https://mesowest.utah.edu/'], geo: ['Field station gauge', DENDRA_LINK], usgs: ['USGS', USGS_LINK], snotel: ['SNOTEL', 'https://nwcc-apps.sc.egov.usda.gov/imap/'], iem: ['Radar amounts', 'https://mesonet.agron.iastate.edu/iemre/'], now: ['Radar now', 'https://mesonet.agron.iastate.edu/docs/nexrad_mosaic/'], nws: ['NWS forecast', 'https://forecast.weather.gov/MapClick.php?lat=39.432&lon=-120.272'], pheno: ['PhenoCam', 'https://phenocam.nau.edu/webcam/sites/sagehen2/'] };
 function setStatus(k, cls, msg) { S.status[k] = { cls, msg }; document.getElementById('status').innerHTML = Object.entries(S.status).map(([k2, s]) => `<span class="${s.cls}"><a href="${SRC[k2][1]}" target="_blank" rel="noopener">${SRC[k2][0]}</a> ${s.msg}</span>`).join(' '); }
 
 /* ======================================================================
@@ -1677,6 +1717,43 @@ function renderSWE() {
   document.getElementById('kb-swe').innerHTML = ks ? `<li>${ks}</li>` : '';
 }
 
+function renderPheno() {
+  const P = S.pheno, cap = document.getElementById('cap-pheno');
+  if (!P) { cap.textContent = S.status.pheno && S.status.pheno.cls === 'err' ? `PhenoCam series unavailable: ${S.status.pheno.msg}` : ''; return; }
+  const b = Date.now(), a = b - 365 * DAY, xr = [a, b];
+  const COL = { sagehen: '#009E73', sagehen2: '#0072B2', sagehen3: '#56B4E9' }, NAME = { sagehen: 'Canopy', sagehen2: 'Fen meadow', sagehen3: 'Fen meadow 2' };
+  const ds = [];
+  for (const k of ['sagehen', 'sagehen2', 'sagehen3']) {
+    const s = P.sites[k]; if (!s) continue;
+    const pts = s.d.map((d, i) => ({ x: dayStart(d) + 12 * HOUR, y: s.g90[i] })).filter(p => p.x >= a && p.y != null);
+    if (pts.length) ds.push({ label: `${NAME[k]} (PhenoCam ${k})`, endLabel: NAME[k], data: pts, borderColor: COL[k], backgroundColor: COL[k], borderWidth: k === 'sagehen2' ? 2 : 1.3 });
+  }
+  // Median of earlier years for each day of the year, for the main meadow camera
+  const m2 = P.sites.sagehen2;
+  if (m2) {
+    const by = new Map(); m2.d.forEach((d, i) => { if (dayStart(d) >= a || m2.g90[i] == null) return; const k = d.slice(5); if (!by.has(k)) by.set(k, []); by.get(k).push(m2.g90[i]); });
+    const med = []; for (let t = a; t <= b; t += DAY) { const v = by.get(localDate(t).slice(5)); if (v && v.length >= 3) { const s2 = v.slice().sort((x, y) => x - y); med.push({ x: t + 12 * HOUR, y: s2[s2.length >> 1] }); } }
+    if (med.length) ds.push({ label: 'Fen meadow, median of earlier years', endLabel: 'meadow median', data: med, borderColor: INK3, backgroundColor: INK3, borderWidth: 1, borderDash: [1, 2.5] });
+  }
+  const days = phenoSnowDays(P), runs = snowRuns(days).filter(r => r.end > a);
+  timeChart('p-gcc', ds, { showX: true, endLabels: true, decimate: false, xRange: xr, rightPad: 96, yTitle: 'GCC', paper: { sync: false, events: runs }, tooltipLabel: c => `${c.dataset.label}: ${c.parsed.y.toFixed(3)}` });
+  const sd = [], ick = (P.ick || []).filter(x => x.t >= a);
+  if (ick.length) sd.push({ label: 'Independence Creek SNOTEL depth, 6,440 ft', endLabel: 'Indep. Creek', data: ick.map(x => ({ x: x.t, y: x.v })), borderColor: SNC['540:CA:SNTL'], backgroundColor: SNC['540:CA:SNTL'], stepped: true, borderWidth: 1.8 });
+  timeChart('p-psnow', sd, { showX: true, endLabels: true, decimate: false, xRange: xr, rightPad: 96, yTitle: 'Depth, in', paper: { sync: false, events: runs }, y: { beginAtZero: true, suggestedMax: 6 }, tooltipLabel: c => `${c.dataset.label}: ${c.parsed.y.toFixed(0)} in` });
+  const K = [], L = [], last = days[days.length - 1];
+  if (last) {
+    let k = days.length - 1; while (k > 0 && days[k - 1].snow === last.snow) k--;
+    L.push(last.snow ? `Snow on the meadow on ${dayTxt(last.t)}, the latest processed day; covered since ${dayTxt(days[k].t)}` : `Meadow bare on ${dayTxt(last.t)}, the latest processed day${k > 0 ? `; bare since ${dayTxt(days[k].t)}` : ''}`);
+    const wy0 = waterYearStart(last.t), prev = days.filter(x => x.t >= wy0 - 365 * DAY && x.t < wy0 && x.snow);
+    if (prev.length) L.push(`Last winter: snow on the meadow ${prev.length} days, first ${dayTxt(prev[0].t)}, last ${dayTxt(prev[prev.length - 1].t)}`);
+  }
+  if (m2) { let j = m2.g90.length - 1; while (j > 0 && m2.g90[j] == null) j--; const yr = m2.d.map((d, q) => dayStart(d) >= a ? m2.g90[q] : null).filter(v => v != null); if (j >= 0 && yr.length) K.push(`Meadow greenness ${m2.g90[j].toFixed(3)} on ${dayTxt(dayStart(m2.d[j]))}; the 12 month peak was ${Math.max(...yr).toFixed(3)}`); }
+  document.getElementById('kb-k').innerHTML = K.map(t => `<li>${t}</li>`).join('');
+  document.getElementById('kb-l').innerHTML = L.map(t => `<li>${t}</li>`).join('');
+  const lastDay = Math.max(...Object.values(P.sites).map(s => s.d.length ? dayStart(s.d[s.d.length - 1]) : 0));
+  cap.innerHTML = `Daily values from the PhenoCam Network for a fixed region of each image, over the last 12 months. <b>k</b> Greenness is the green share of the image (green over red plus green plus blue, 90th percentile of the day's images): it rises at green up and falls as the meadow cures and under snow. Dotted: the meadow camera's median for each date in earlier years (from 2017). <b>l</b> Gray bands, in both panels: days the two meadow cameras see snow (blue share of 0.32 or more; agreed with SNOTEL depth on 96% of days, 2017 to 2026). Line: snow depth at Independence Creek SNOTEL, 2 miles north at a similar elevation. PhenoCam processes images a few days behind; latest day ${dayTxt(lastDay)}.`;
+}
+
 /* CSV */
 function csvEsc(x) { const s = x == null ? '' : String(x); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; }
 function download(name, rows) { const blob = new Blob([rows.map(r => r.map(csvEsc).join(',')).join('\n') + '\n'], { type: 'text/csv' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
@@ -1722,7 +1799,7 @@ function renderAll() {
   document.getElementById('cs').value = localInput(S.win.a); document.getElementById('ce').value = localInput(S.win.b);
   document.getElementById('meta').textContent = S.loadedAt ? `loaded ${fmtTime(S.loadedAt)}` : 'loading…';
   safe(renderStorms, 'storms'); safe(renderSummary, 'summary'); safe(renderFig1, 'fig1'); safe(renderMap, 'map'); safe(renderElev, 'elev');
-  safe(renderStationTable, 'stations'); safe(renderSWE, 'swe'); safe(renderWT, 'wt'); safe(renderForecast, 'forecast');
+  safe(renderStationTable, 'stations'); safe(renderSWE, 'swe'); safe(renderWT, 'wt'); safe(renderForecast, 'forecast'); safe(renderPheno, 'pheno');
 }
 function loadCams() {
   const v = Math.floor(Date.now() / (15 * MIN)), w = Math.floor(Date.now() / MIN);
@@ -1737,7 +1814,7 @@ async function loadAll() {
   const { a, b } = S.win, now = Date.now();
   const pa = Math.min(a - 12 * HOUR - MELT_LOOKBACK, b - DAY - HOUR, midnightLocal(Math.min(b, now)) - HOUR), fa = a - 12 * HOUR, fb = Math.min(now, b + 48 * HOUR);
   S.view = null; S.radarTimes = []; document.querySelectorAll('.zoom-reset').forEach(x => x.classList.add('hidden'));
-  for (const k of ['syn', 'geo', 'usgs', 'snotel', 'iem', 'now', 'nws']) setStatus(k, 'loading', 'loading');
+  for (const k of ['syn', 'geo', 'usgs', 'snotel', 'iem', 'now', 'nws', 'pheno']) setStatus(k, 'loading', 'loading');
   renderAll(); loadCams();
   const done = () => { if (seq === loadSeq) { safe(processAll, 'process'); renderAll(); } };
   const live = b >= now - 10 * MIN;
@@ -1749,6 +1826,7 @@ async function loadAll() {
     loadSnotel(a, b).then(d => { if (seq !== loadSeq) return; S.snotel = d; setStatus('snotel', 'ok', 'daily and hourly'); }).catch(e => { if (seq === loadSeq) { S.snotel = null; setStatus('snotel', 'err', e.message); } }),
     loadIEM(a, Math.min(b, now)).then(d => { if (seq !== loadSeq) return; S.iem = d; setStatus('iem', d.rows.length ? 'ok' : 'warn', d.rows.length ? `${d.hourly ? 'Stage IV hourly' : 'MRMS daily'} to ${fmtWhen(d.last)}` : 'none for this window'); }).catch(e => { if (seq === loadSeq) { S.iem = null; setStatus('iem', 'err', e.message); } }),
     loadNWS().then(d => { if (seq !== loadSeq) return; S.nws = d; setStatus('nws', 'ok', `issued ${fmtWhen(d.updated)}`); }).catch(e => { if (seq === loadSeq) { S.nws = null; setStatus('nws', 'err', e.message); } }),
+    (S.pheno ? Promise.resolve(S.pheno) : loadPheno()).then(d => { if (seq !== loadSeq) return; S.pheno = d; const lt = Math.max(...Object.values(d.sites).map(s => s.d.length ? dayStart(s.d[s.d.length - 1]) : 0)); setStatus('pheno', Date.now() - lt > 6 * DAY ? 'warn' : 'ok', `daily to ${dayTxt(lt)}`); }).catch(e => { if (seq === loadSeq) { S.pheno = null; setStatus('pheno', 'err', e.message); } }),
     (live ? radarNow() : Promise.resolve(null)).then(d => { if (seq !== loadSeq) return; S.now = d; setStatus('now', d ? 'ok' : 'warn', d ? fmtTime(d.t) : 'live window only'); }).catch(e => { if (seq === loadSeq) { S.now = null; setStatus('now', 'err', e.message); } }),
   ];
   jobs.forEach(j => j.then(done));
@@ -1861,7 +1939,7 @@ function initUI() {
 readHash(); initUI(); loadAll();
 if (/[?&]selftest/.test(location.search)) { document.querySelector('.drawer').open = true; document.getElementById('methods-box').open = true; runSelfTests(); }
 window.addEventListener('hashchange', () => { const before = JSON.stringify(S.win); readHash(); if (JSON.stringify(S.win) !== before) loadAll(); });
-let _rz = null; window.addEventListener('resize', () => { clearTimeout(_rz); _rz = setTimeout(() => { safe(renderFig1, 'fig1'); safe(renderForecast, 'forecast'); safe(renderWT, 'wt'); }, 250); });
+let _rz = null; window.addEventListener('resize', () => { clearTimeout(_rz); _rz = setTimeout(() => { safe(renderFig1, 'fig1'); safe(renderForecast, 'forecast'); safe(renderWT, 'wt'); safe(renderPheno, 'pheno'); }, 250); });
 </script>
 </body>
 </html>

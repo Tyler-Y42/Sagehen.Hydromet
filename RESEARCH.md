@@ -64,6 +64,12 @@ Done 2026-10-14 (overnight). Every source below was probed directly; "CORS" mean
 - HydroShare DWCZ Sagehen soil moisture, soil temperature and snow depth array at the Tower 1 hillslope (2017 on): file archive, last updated May 2023, not live.
 - UNR Harpold lab field sites at Sagehen: the PhenoCams, the Tower 5 camera and Independence Lake SNOTEL; no separate live stations.
 
+## PhenoCam greenness and snow series (added 2026-10-15)
+
+- Daily summaries per camera region: sagehen_EN_1000 (canopy), sagehen2_GR_1000 and sagehen3_GR_1001 (fen meadow), from phenocam.nau.edu/data/archive/{site}/ROI/{roi}_1day.csv, records from 2017 (sagehen3 from 2019). PhenoCam processes them a few days behind (on 10/15 the latest day was 10/11).
+- The archive CSVs send no CORS header (the PhenoCam API does, but has no time series). So the Alta Hydromet Action copies them: scripts/fetch_phenocam.py in Tyler-Y42/Alta.Hydromet writes data branch sagehen/phenocam.json (about 285 KB), downloading only when a file's Last-Modified changes. It rides on Alta's Cloudflare triggered 15 min job because new GitHub schedules have not been firing.
+- The files' snow_flag column is empty, so snow is derived: the ROI blue chromatic coordinate b/(r+g+b), mean of the two meadow cameras, at 0.32 or more. Against Independence Creek SNOTEL depth of 1 in or more (2 mi N, 6,440 ft), 2017 to 2026: 96% agreement on 3,218 days; snow on and off dates within days most winters. Most disagreements are fall dustings and the open meadow melting out earlier or later than the SNOTEL site (WY2026: meadow bare 3/24, SNOTEL about 4/10).
+
 ## Notes for later
 
 - SNOTEL hourly AWDB stamps are PST (same as Alta); SCAN would be different.
