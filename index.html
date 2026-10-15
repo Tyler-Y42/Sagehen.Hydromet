@@ -268,14 +268,14 @@
     <figure><a href="https://phenocam.nau.edu/webcam/sites/sagehen/" target="_blank" rel="noopener"><img data-cam="sagehen" alt="Sagehen above canopy camera" loading="lazy"></a><figcaption><b>Above the canopy</b>, looking across the basin from the flux tower</figcaption></figure>
     <figure><a href="https://phenocam.nau.edu/webcam/sites/sagehen2/" target="_blank" rel="noopener"><img data-cam="sagehen2" alt="Sagehen fen camera 2" loading="lazy"></a><figcaption><b>Fen meadow</b>, beside the tower instruments</figcaption></figure>
     <figure><a href="https://phenocam.nau.edu/webcam/sites/sagehen3/" target="_blank" rel="noopener"><img data-cam="sagehen3" alt="Sagehen fen camera 3" loading="lazy"></a><figcaption><b>Fen meadow</b>, second view</figcaption></figure>
-    <figure><a href="https://cameras.alertcalifornia.org/public-camera-data/Axis-Sagehen5/latest-frame.jpg" target="_blank" rel="noopener"><img data-alert="Axis-Sagehen5" alt="Sagehen Tower 5 fire camera" loading="lazy"></a><figcaption><b>Tower 5, top of the watershed</b> (8,389 ft), ALERTCalifornia fire camera; it pans, so the view changes</figcaption></figure>
+    <figure><a href="https://www.alertwildfire.org/?currentFirecam=ca-sage-hen-1" target="_blank" rel="noopener"><img data-alert="Axis-Sagehen5" alt="Sagehen Tower 5 fire camera" loading="lazy"></a><figcaption><b>Sage Hen 1 fire camera</b>, on the west ridge of the basin (8,389 ft); it pans, so the view changes</figcaption></figure>
   </div>
   <div class="row2 pheno">
     <div><div class="plab"><b class="pl">k</b><span class="pt">Greenness</span><span class="u">GCC, green share of image brightness</span></div><ul class="kb" id="kb-k"></ul><div class="cbox side ph"><canvas id="p-gcc"></canvas></div></div>
     <div><div class="plab"><b class="pl">l</b><span class="pt">Snow on the meadow</span><span class="u">blue share of the meadow images</span></div><ul class="kb" id="kb-l"></ul><div class="cbox side ph"><canvas id="p-psnow"></canvas></div></div>
   </div>
   <p class="cap" id="cap-pheno"></p>
-  <p class="cap" id="cap-cam">Latest image from each camera; the time is printed on each image (PST on the PhenoCams, every 30 min in daylight; Pacific time on the fire camera, about every minute). Snow on the ground, rime and frost show here before they show in the numbers. PhenoCams run by the Kirchner lab (ETH Zurich) at the field station flux tower; the fire camera by UC San Diego and the Nevada Seismological Laboratory. Tap a PhenoCam for its archive. The fire camera is not listed in the public ALERTCalifornia or AlertWildfire viewers, so tapping it opens its newest full size image (1920 × 1080).</p>
+  <p class="cap" id="cap-cam">Latest image from each camera; the time is printed on each image (PST on the PhenoCams, every 30 min in daylight; Pacific time on the fire camera, about every minute). Snow on the ground, rime and frost show here before they show in the numbers. PhenoCams run by the Kirchner lab (ETH Zurich) at the field station flux tower. The fire camera, Sage Hen 1 (Axis-Sagehen5), is run by the Nevada Seismological Laboratory (UNR) for ALERTWildfire, with maintenance sponsored by Liberty Utilities; it sits inside the basin 180 m from Independence Lake SNOTEL. Tap a PhenoCam for its archive, or the fire camera for its live AlertWildfire viewer.</p>
 </div>
 
 <details class="drawer">
@@ -425,6 +425,8 @@ const PHENO_SNOW_BCC = 0.32, PHENO_MEADOW = ['sagehen2', 'sagehen3'];
 const CAMS = [
   { id: 'sagehen', lat: 39.4315, lon: -120.2398, name: 'Above canopy camera' },
   { id: 'sagehen2', lat: 39.4307, lon: -120.2407, name: 'Fen camera' },
+  // ALERTWildfire "Sage Hen 1" (hostname Axis-Sagehen5, slug ca-sage-hen-1), 2,557 m, from awf-data-public-prod/all-cameras.json
+  { id: 'Axis-Sagehen5', lat: 39.426414, lon: -120.311867, name: 'Sage Hen 1 fire camera', fire: true, link: 'https://www.alertwildfire.org/?currentFirecam=ca-sage-hen-1' },
 ];
 
 /* Colors: ink for the main series, a sequential blue ramp for elevation (light-surface
@@ -1609,7 +1611,9 @@ function renderMap() {
   }
   for (const c of CAMS) {
     const ic = L.divIcon({ className: '', html: `<svg width="9" height="9"><rect x="1.5" y="1.5" width="6" height="6" fill="#111" transform="rotate(45 4.5 4.5)"/></svg>`, iconSize: [9, 9], iconAnchor: [4.5, 4.5] });
-    L.marker([c.lat, c.lon], { icon: ic }).bindPopup(`<b>${c.name}</b> (PhenoCam ${c.id})<br><img src="https://phenocam.nau.edu/data/latest/${c.id}.jpg" style="width:220px;display:block;margin-top:4px" alt="${c.name}">`).addTo(stationLayer);
+    const img = c.fire ? `https://cameras.alertcalifornia.org/public-camera-data/${c.id}/latest-frame.jpg` : `https://phenocam.nau.edu/data/latest/${c.id}.jpg`;
+    const mk = L.marker([c.lat, c.lon], { icon: ic }).bindPopup(`<b>${c.name}</b> (${c.fire ? 'ALERTWildfire, 8,389 ft' : `PhenoCam ${c.id}`})<br><img src="${img}" style="width:220px;display:block;margin-top:4px" alt="${c.name}">${c.fire ? `<a href="${c.link}" target="_blank" rel="noopener">Live viewer</a>` : ''}`);
+    (c.fire ? label(mk, 'Fire camera', 'bottom') : mk).addTo(stationLayer);
   }
   if (!S.radarTimes.length) setRadarTimes(T_END() - 2 * HOUR, T_END());
   updateRadarLayer();
